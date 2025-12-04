@@ -9,6 +9,8 @@ import ProtectedRoute from "./protectedRouting/ProtectedRoute";
 import AdminDash from "./pages/Dashboard/AdminDash";
 import FacultyDash from "./pages/Dashboard/FacultyDash";
 import StudentDash from "./pages/Dashboard/StudentDash";
+import VerifyEmail from "./pages/VerifyEmail/VerifyEmail";
+import Login from "./pages/AuthPage/Login";
 
 const user = createContext()
 
@@ -24,9 +26,10 @@ const App = () => {
       element: <AppLayout />,
       children: [
         { path: "/", element: <Home /> },
+        {path: "/my-enrollements",element:<StudentDash/>},
         { path: "/explore-courses", element: <ExplorePage /> },
         { path: "/course-about", element: <CourseDetails /> },
-
+        { path: "/verify/:token", element: <VerifyEmail/> },
         {
           path: "/admin",
           element: (

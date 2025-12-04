@@ -68,10 +68,47 @@ const Login = ({ isModal, closeLogin }) => {
 
 
   // --- REGISTER HANDLER ---
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    setError("Registration endpoint not implemented yet.");
-  };
+const handleRegister = async (e) => {
+  e.preventDefault();
+  setError("");
+
+  // Basic validation
+  if (!regName || !regEmail || !regPassword || !regRole) {
+    setError("Please fill in all required fields");
+    return;
+  }
+
+  try {
+    const { data } = await axios.post(
+      `${import.meta.env.VITE_API_URL}/api/auth/register`,
+      {
+        name: regName,
+        email: regEmail,
+        password: regPassword,
+        role: regRole,
+        bio: regBio,
+      }
+    );
+
+    console.log("Registration successful:", data);
+
+    // Optionally switch to login tab after registration
+    setActiveTab("login");
+    setError("Registration successful! Please check your email to verify your account.");
+
+    // Clear register form
+    setRegName("");
+    setRegEmail("");
+    setRegPassword("");
+    setRegBio("");
+    setRegRole("student");
+
+  } catch (err) {
+    console.error(err);
+    setError(err.response?.data?.message || "Registration failed");
+  }
+};
+
 
   return (
     <div
