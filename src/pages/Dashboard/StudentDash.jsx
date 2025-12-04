@@ -1,3 +1,4 @@
+// src/pages/Dashboard/StudentDash.jsx
 import React from "react";
 import { motion } from "framer-motion";
 import {
@@ -8,10 +9,10 @@ import {
   ArrowRight,
   PlayCircle,
 } from "lucide-react";
-import { getUser } from "../../utils/auth";
+import { useUser } from "../../context/UserContext";
 
 const StudentDash = () => {
-  const user = getUser();
+  const { user } = useUser(); // ✅ use context instead of getUser()
 
   // Dummy enrolled courses
   const enrolledCourses = [
@@ -34,7 +35,7 @@ const StudentDash = () => {
   ];
 
   return (
-    <div className="pt-[90px] px-6 lg:px-16 pb-16 min-h-screen bg-gray-50">
+    <div className="pt-[90px] px-4 sm:px-6 lg:px-16 pb-16 min-h-screen bg-gray-50">
       {/* ======================= HEADER ======================= */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -117,9 +118,7 @@ const StudentDash = () => {
               />
 
               <div className="p-4">
-                <h3 className="font-bold text-slate-900 text-sm">
-                  {c.title}
-                </h3>
+                <h3 className="font-bold text-slate-900 text-sm">{c.title}</h3>
 
                 {/* Progress bar */}
                 <div className="mt-3">
@@ -129,14 +128,11 @@ const StudentDash = () => {
                       style={{ width: `${c.progress}%` }}
                     ></div>
                   </div>
-                  <p className="text-xs text-gray-600 mt-1">
-                    {c.progress}% completed
-                  </p>
+                  <p className="text-xs text-gray-600 mt-1">{c.progress}% completed</p>
                 </div>
 
                 <p className="mt-2 flex items-center gap-2 text-xs text-gray-500">
-                  <Clock className="w-4 h-4" /> Last accessed:{" "}
-                  {c.lastAccessed}
+                  <Clock className="w-4 h-4" /> Last accessed: {c.lastAccessed}
                 </p>
 
                 <motion.button
@@ -144,8 +140,7 @@ const StudentDash = () => {
                   whileTap={{ scale: 0.95 }}
                   className="w-full mt-4 py-2 bg-blue-600 text-white rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition"
                 >
-                  <PlayCircle className="w-5 h-5" />
-                  Continue
+                  <PlayCircle className="w-5 h-5" /> Continue
                 </motion.button>
               </div>
             </motion.div>

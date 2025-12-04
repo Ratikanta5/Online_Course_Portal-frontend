@@ -12,109 +12,106 @@ const Login = ({ isModal, closeLogin }) => {
 
   const [activeTab, setActiveTab] = useState("login");
 
+  // LOGIN STATES
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
+  // REGISTER STATES
   const [regName, setRegName] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [regRole, setRegRole] = useState("student");
   const [regBio, setRegBio] = useState("");
 
+  const [regImage, setRegImage] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
+
   const [error, setError] = useState("");
 
-  // --- LOGIN HANDLER ---
- const handleLogin = async (e) => {
-  e.preventDefault();
-  setError("");
+  // ------------------- LOGIN HANDLER -------------------
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
 
-  try {
-    const { data } = await axios.post(
-      `${import.meta.env.VITE_API_URL}/api/auth/login`,
-      { email: loginEmail, password: loginPassword }
-    );
+    try {
+      const { data } = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/auth/login`,
+        { email: loginEmail, password: loginPassword }
+      );
 
-    console.log(data);
+      const { id, role } = data.user;
+      setUser({ id, role });
 
-    
+      if (isModal && closeLogin) closeLogin();
 
-    const {id, role} = data.user
-
-    // Save to localStorage
-    setUser({id,role});
-
-    if (isModal && closeLogin) closeLogin();
-
-    // Navigate by role
-    switch (data.user.role) {
-      case "admin":
-        navigate("/admin");
-        break;
-      case "lecture":
-        navigate("/lecture");
-        break;
-      case "student":
-        navigate("/student");
-        break;
-      default:
-        navigate("/");
-    }
-  } catch (err) {
-    setError(err.response?.data?.message || "Login failed");
-  }
-};
-
-
-
-
-  // --- REGISTER HANDLER ---
-const handleRegister = async (e) => {
-  e.preventDefault();
-  setError("");
-
-  // Basic validation
-  if (!regName || !regEmail || !regPassword || !regRole) {
-    setError("Please fill in all required fields");
-    return;
-  }
-
-  try {
-    const { data } = await axios.post(
-      `${import.meta.env.VITE_API_URL}/api/auth/register`,
-      {
-        name: regName,
-        email: regEmail,
-        password: regPassword,
-        role: regRole,
-        bio: regBio,
+      switch (role) {
+        case "admin":
+          navigate("/admin");
+          break;
+        case "lecture":
+          navigate("/lecture");
+          break;
+        case "student":
+          navigate("/student");
+          break;
+        default:
+          navigate("/");
       }
-    );
+    } catch (err) {
+      setError(err.response?.data?.message || "Login failed");
+    }
+  };
 
-    console.log("Registration successful:", data);
+  // ------------------- REGISTER HANDLER -------------------
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setError("");
 
-    // Optionally switch to login tab after registration
-    setActiveTab("login");
-    setError("Registration successful! Please check your email to verify your account.");
+    if (!regName || !regEmail || !regPassword) {
+      setError("Please fill in all required fields");
+      return;
+    }
 
-    // Clear register form
-    setRegName("");
-    setRegEmail("");
-    setRegPassword("");
-    setRegBio("");
-    setRegRole("student");
+    try {
+      const formData = new FormData();
+      formData.append("name", regName);
+      formData.append("email", regEmail);
+      formData.append("password", regPassword);
+      formData.append("role", regRole);
+      formData.append("bio", regBio);
 
-  } catch (err) {
-    console.error(err);
-    setError(err.response?.data?.message || "Registration failed");
-  }
-};
+      if (regImage) {
+        formData.append("profileImage", regImage);
+      }
 
+      const { data } = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/auth/register`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
+      setActiveTab("login");
+      setError("Registration successful! Please check your email.");
+
+      setRegName("");
+      setRegEmail("");
+      setRegPassword("");
+      setRegBio("");
+      setRegRole("student");
+      setRegImage(null);
+      setPreviewImage(null);
+    } catch (err) {
+      setError(err.response?.data?.message || "Registration failed");
+    }
+  };
 
   return (
     <div
       className={
         isModal
-          ? "w-full"
+          ? "w-full max-h-screen overflow-y-auto"
           : "min-h-screen bg-black flex items-center justify-center px-4"
       }
     >
@@ -220,6 +217,50 @@ const handleRegister = async (e) => {
               placeholder="•••••••••"
             />
 
+            {/* ================= IMAGE UPLOAD UI ================= */}
+            <div>
+              <label className="text-sm font-medium text-gray-800">
+                Profile Picture
+              </label>
+
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                className="mt-2 border-2 border-dashed border-gray-300 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-gray-50 hover:bg-gray-100 transition"
+                onClick={() => document.getElementById("uploadPic").click()}
+              >
+                {previewImage ? (
+                  <img
+                    src={previewImage}
+                    className="w-24 h-24 object-cover rounded-full shadow-md"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center">
+                    <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-2">
+                      <User className="w-8 h-8 text-gray-500" />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Click to upload profile image
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+
+              <input
+                type="file"
+                id="uploadPic"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setRegImage(file);
+                    setPreviewImage(URL.createObjectURL(file));
+                  }
+                }}
+              />
+            </div>
+
+            {/* ROLE */}
             <div>
               <label className="text-sm font-medium text-gray-800">
                 Select Role
@@ -234,6 +275,7 @@ const handleRegister = async (e) => {
               </select>
             </div>
 
+            {/* BIO */}
             <div>
               <label className="text-sm font-medium text-gray-800">
                 Bio (optional)

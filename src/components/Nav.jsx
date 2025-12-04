@@ -9,10 +9,12 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { getUser } from "../utils/auth";
+
+// ⬅️ USE YOUR GLOBAL USER CONTEXT
+import { useUser } from "../context/UserContext";
 
 const Nav = ({ openLogin }) => {
-  const user = getUser();
+  const { user, loading } = useUser();   // ← here
   const navigate = useNavigate();
   const [openProfile, setOpenProfile] = useState(false);
   const [openNotif, setOpenNotif] = useState(false);
@@ -120,7 +122,7 @@ const Nav = ({ openLogin }) => {
               <motion.img
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
-                src={user.photo || "/default-profile.png"}
+                src={user.profileImage?.url || "/default-profile.png"}
                 onClick={() => setOpenProfile(!openProfile)}
                 className="w-10 h-10 rounded-full border cursor-pointer object-cover"
               />

@@ -31,7 +31,7 @@ export const UserProvider = ({ children }) => {
           { params: { id: parsed.id, role:parsed.role } } // backend: req.query.id
         );
 
-        // Expecting: { user: { id, name, email, role, ... } }
+        console.log(data);
         if (data?.user) {
           setUser(data.user);
         } else {

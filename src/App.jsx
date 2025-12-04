@@ -11,8 +11,9 @@ import FacultyDash from "./pages/Dashboard/FacultyDash";
 import StudentDash from "./pages/Dashboard/StudentDash";
 import VerifyEmail from "./pages/VerifyEmail/VerifyEmail";
 import Login from "./pages/AuthPage/Login";
+import { UserProvider } from "./context/UserContext";
+import ProfilePage from "./pages/profile/ProfilePage";
 
-const user = createContext()
 
 const App = () => {
   try {
@@ -30,6 +31,9 @@ const App = () => {
         { path: "/explore-courses", element: <ExplorePage /> },
         { path: "/course-about", element: <CourseDetails /> },
         { path: "/verify/:token", element: <VerifyEmail/> },
+        { path: "/profile", element: <ProfilePage /> },
+        {path:"/lecturer/dashboard",element:<FacultyDash/>},
+
         {
           path: "/admin",
           element: (
@@ -60,7 +64,11 @@ const App = () => {
     },
   ]);
 
-  return <RouterProvider router={routes} />;
+  return(
+     <UserProvider>
+      <RouterProvider router={routes} />
+    </UserProvider>
+  );
 };
 
 export default App;
