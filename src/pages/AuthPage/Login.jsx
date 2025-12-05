@@ -5,10 +5,12 @@ import SubmitButton from "./SubmitButton";
 import InputField from "./InputField";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { setUser } from "../../utils/auth";
+import { setUser as persistUser } from "../../utils/auth";
+import { useUser } from "../../context/UserContext";
 
 const Login = ({ isModal, closeLogin }) => {
   const navigate = useNavigate();
+  const { setUser: setCtxUser } = useUser();
 
   const [activeTab, setActiveTab] = useState("login");
 
@@ -40,7 +42,25 @@ const Login = ({ isModal, closeLogin }) => {
       );
 
       const { id, role } = data.user;
-      setUser({ id, role });
+      // persist minimal info for session restore
+      persistUser({ id, role });
+
+      // fetch full user profile (/me) so we have image/bio/createdAt
+      try {
+        const { data: meData } = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/auth/me`,
+          { params: { id, role } }
+        );
+
+        if (meData?.user && setCtxUser) {
+          setCtxUser(meData.user);
+        } else if (setCtxUser) {
+          setCtxUser(data.user);
+        }
+      } catch (meErr) {
+        console.error("Failed to fetch /me after login:", meErr);
+        if (setCtxUser) setCtxUser(data.user);
+      }
 
       if (isModal && closeLogin) closeLogin();
 
@@ -58,7 +78,9 @@ const Login = ({ isModal, closeLogin }) => {
           navigate("/");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed");
+      console.error("Login error:", err);
+      const msg = err.response?.data?.message || err.message || "Login failed";
+      setError(msg);
     }
   };
 

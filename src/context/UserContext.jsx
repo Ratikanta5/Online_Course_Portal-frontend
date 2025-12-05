@@ -28,7 +28,7 @@ export const UserProvider = ({ children }) => {
         // 🔥 Call /me with id (adjust URL to match your backend)
         const { data } = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/auth/me`,
-          { params: { id: parsed.id, role:parsed.role } } // backend: req.query.id
+          { params: { id: parsed.id, role: parsed.role } }
         );
 
         console.log(data);

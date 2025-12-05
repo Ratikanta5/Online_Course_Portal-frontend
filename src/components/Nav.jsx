@@ -12,9 +12,10 @@ import { useNavigate } from "react-router-dom";
 
 // ⬅️ USE YOUR GLOBAL USER CONTEXT
 import { useUser } from "../context/UserContext";
+import { removeUser } from "../utils/auth";
 
 const Nav = ({ openLogin }) => {
-  const { user, loading } = useUser();   // ← here
+  const { user, loading, setUser } = useUser();   // ← here
   const navigate = useNavigate();
   const [openProfile, setOpenProfile] = useState(false);
   const [openNotif, setOpenNotif] = useState(false);
@@ -64,7 +65,9 @@ const Nav = ({ openLogin }) => {
         </div>
 
         {/* Right Side */}
-        {!user ? (
+        {loading ? (
+          <div className="w-28 h-10 bg-gray-200 rounded-lg animate-pulse" />
+        ) : !user ? (
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -169,8 +172,10 @@ const Nav = ({ openLogin }) => {
                   {/* Logout */}
                   <button
                     onClick={() => {
+                      removeUser();
+                      if (setUser) setUser(null);
+                      setOpenProfile(false);
                       navigate("/");
-                      window.location.reload();
                     }}
                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-100 rounded-lg"
                   >
