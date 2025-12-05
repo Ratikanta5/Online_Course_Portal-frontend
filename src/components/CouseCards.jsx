@@ -1,11 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { getExchangeRate } from "../utils/exchangeRate";
 
 const CourseCard = ({ course, avgStars, index }) => {
-  const [currency, setCurrency] = useState("INR");
-
+  const [exchangeRate, setExchangeRate] = useState(83);
   const navigate = useNavigate();
+
+  // Resolve image URL (courseImage may be object or array)
+  const imageUrl =
+    (course?.courseImage && (course.courseImage.url || course.courseImage.secure_url || (Array.isArray(course.courseImage) && course.courseImage[0]?.url))) ||
+    course?.thumbnail ||
+    course?.image ||
+    "/placeholder-course.png";
+
+  // Created date fallback
+  const createdAt = course?.createdAt || course?.created_at || null;
+  const createdDate = createdAt ? new Date(createdAt).toLocaleDateString() : "";
+
+  // Lecturer fallback
+  const lecturerName = course?.creator?.name || course?.lecturer?.name || course?.lecturer || "Instructor Unavailable";
+
+  // Fetch real-time exchange rate on component mount
+  useEffect(() => {
+    const fetchRate = async () => {
+      const rate = await getExchangeRate();
+      setExchangeRate(rate);
+    };
+    fetchRate();
+  }, []);
 
   const description = async (course) => {
     navigate("/course-about", { state: course });
@@ -23,7 +46,7 @@ const CourseCard = ({ course, avgStars, index }) => {
     >
       {/* THUMBNAIL */}
       <motion.img
-        src={course.thumbnail}
+        src={imageUrl}
         whileHover={{ scale: 1.05 }}
         transition={{ duration: 0.3 }}
         className="w-full h-[160px] object-cover"
@@ -55,7 +78,7 @@ const CourseCard = ({ course, avgStars, index }) => {
               </span>
             ))}
             <span className="text-slate-500 text-xs ml-2">
-              ({course.reviews.length})
+              ({course.reviews?.length || 0})
             </span>
           </div>
         </div>
@@ -64,26 +87,14 @@ const CourseCard = ({ course, avgStars, index }) => {
         <div className="mt-3">
           <div className="flex items-center justify-between">
             <p className="text-slate-900 font-semibold text-sm">
-              {currency === "INR"
-                ? `₹${course.priceINR}`
-                : `$${course.priceUSD}`}
+              ₹{course.price || 0} / ${Math.round((course.price / exchangeRate) * 100) / 100}
             </p>
-
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              whileHover={{ scale: 1.1 }}
-              onClick={() => setCurrency(currency === "INR" ? "USD" : "INR")}
-              className="px-2 py-1 text-[10px] bg-blue-100 text-blue-600 
-                     rounded-md hover:bg-blue-200 transition"
-            >
-              {currency === "INR" ? "USD" : "INR"}
-            </motion.button>
           </div>
 
           <p className="text-slate-500 text-[11px] truncate mt-2">
-            {course.lecturer}
+            {lecturerName}
           </p>
-          <p className="text-gray-400 text-[10px]">{course.created_at}</p>
+          <p className="text-gray-400 text-[10px]">{createdDate}</p>
 
           {/* DETAILS BUTTON — FIXED POSITION + UI UPGRADE */}
           <motion.button

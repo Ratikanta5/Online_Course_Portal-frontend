@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom";
 
 // ⬅️ USE YOUR GLOBAL USER CONTEXT
 import { useUser } from "../context/UserContext";
-import { removeUser } from "../utils/auth";
+import { removeUser, removeToken } from "../utils/auth";
 
 const Nav = ({ openLogin }) => {
   const { user, loading, setUser } = useUser();   // ← here
@@ -173,6 +173,7 @@ const Nav = ({ openLogin }) => {
                   <button
                     onClick={() => {
                       removeUser();
+                      removeToken();
                       if (setUser) setUser(null);
                       setOpenProfile(false);
                       navigate("/");

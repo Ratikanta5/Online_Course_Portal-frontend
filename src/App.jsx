@@ -13,6 +13,7 @@ import VerifyEmail from "./pages/VerifyEmail/VerifyEmail";
 import Login from "./pages/AuthPage/Login";
 import { UserProvider } from "./context/UserContext";
 import ProfilePage from "./pages/profile/ProfilePage";
+import CourseProvider from "./context/CourseContext";
 
 
 const App = () => {
@@ -65,8 +66,10 @@ const App = () => {
   ]);
 
   return(
-     <UserProvider>
-      <RouterProvider router={routes} />
+  <UserProvider>
+      <CourseProvider>
+        <RouterProvider router={routes} />
+      </CourseProvider>
     </UserProvider>
   );
 };

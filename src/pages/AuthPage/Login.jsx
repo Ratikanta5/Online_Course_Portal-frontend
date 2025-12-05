@@ -5,7 +5,7 @@ import SubmitButton from "./SubmitButton";
 import InputField from "./InputField";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { setUser as persistUser } from "../../utils/auth";
+import { setUser as persistUser, setToken } from "../../utils/auth";
 import { useUser } from "../../context/UserContext";
 
 const Login = ({ isModal, closeLogin }) => {
@@ -42,7 +42,11 @@ const Login = ({ isModal, closeLogin }) => {
       );
 
       const { id, role } = data.user;
-      // persist minimal info for session restore
+      const { token } = data;
+      console.log("Login response token:", token);
+      // persist token & minimal user info
+      setToken(token);
+      console.log("Token stored in localStorage:", localStorage.getItem("authToken"));
       persistUser({ id, role });
 
       // fetch full user profile (/me) so we have image/bio/createdAt

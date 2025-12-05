@@ -13,3 +13,18 @@ export const getUser = () => {
 export const removeUser = () => {
   localStorage.removeItem("user");
 };
+
+// Token management
+export const setToken = (token) => {
+  if (token) {
+    localStorage.setItem("authToken", token);
+  }
+};
+
+export const getToken = () => {
+  return localStorage.getItem("authToken") || null;
+};
+
+export const removeToken = () => {
+  localStorage.removeItem("authToken");
+};

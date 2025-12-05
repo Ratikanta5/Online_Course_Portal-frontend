@@ -4,9 +4,24 @@ import CourseCard from "../CouseCards";
 
 const FeatureCourse = ({ dummyCourses, getAverageStars }) => {
 
-  // 🔥 Random shuffle each render
+  // 🔥 Select random 4 courses (or less if fewer exist) and shuffle each render
   const shuffledCourses = React.useMemo(() => {
-    const arr = [...dummyCourses];
+    const maxDisplay = 4;
+    
+    // If we have fewer courses than maxDisplay, use all
+    // Otherwise, randomly select maxDisplay courses
+    let selectedCourses = dummyCourses;
+    if (dummyCourses.length > maxDisplay) {
+      selectedCourses = [];
+      const indices = new Set();
+      while (indices.size < maxDisplay) {
+        indices.add(Math.floor(Math.random() * dummyCourses.length));
+      }
+      selectedCourses = Array.from(indices).map(i => dummyCourses[i]);
+    }
+    
+    // Fisher-Yates shuffle
+    const arr = [...selectedCourses];
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
