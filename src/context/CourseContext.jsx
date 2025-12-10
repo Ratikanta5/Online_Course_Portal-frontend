@@ -37,7 +37,7 @@ export default function CourseProvider({ children }) {
         config
       );
 
-      console.log("CourseContext - Fetched courses response:", res.data.courses);
+      console.log("CourseContext - Fetched courses response:", res.data);
 
       if (res.data.success) {
         setCourses(res.data.courses || []);

@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useCourses } from "../../context/CourseContext";
 
 /* -----------------------------------------------------
    SKELETON LOADING COMPONENT
@@ -26,186 +27,13 @@ const SkeletonCard = () => {
 
 const ExplorePage = () => {
   const navigate = useNavigate();
+  const { courses, loading, error } = useCourses();
+
+  console.log("ExplorePage - courses:", courses, "loading:", loading, "error:", error);
 
   const description = async (course) => {
     navigate("/course-about", { state: course });
   };
-  /* -----------------------------------------------------
-     DUMMY DATA (20+ ITEMS)
-  ------------------------------------------------------ */
-  const dummyCourses = [
-    {
-      id: 1,
-      title: "React Mastery Bootcamp",
-      category: "React",
-      description: "Master advanced React, hooks, patterns, and scalability.",
-      thumbnail: "https://i.ytimg.com/vi/MHn66JJH5zs/maxresdefault.jpg",
-      reviews: [5, 4, 5, 4, 5],
-      priceINR: 2999,
-      priceUSD: 39.99,
-      lecturer: "Arjun Rao",
-      created_at: "2025-02-10",
-      courseStatus: true,
-      topics: [
-        {
-          title: "Introduction",
-          topicStatus: "approved",
-          lectures: [
-            {
-              title: "What is Web Development?",
-              videoUrl: { url: "...", filename: "..." },
-              status: "approved",
-              coveredDuration: 3,
-              lectureDuration: 10,
-            },
-          ],
-        },
-        {
-          title: "JavaScript Basics",
-          lectures: [
-            {
-              title: "Variables",
-              coveredDuration: 0,
-              lectureDuration: 12,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: 2,
-      title: "Python for Data Science",
-      category: "Python",
-      description: "Data analysis, ML, and automation with Python.",
-      thumbnail: "https://i.ytimg.com/vi/MHn66JJH5zs/maxresdefault.jpg",
-      reviews: [5, 5, 4],
-      priceINR: 2499,
-      priceUSD: 34.99,
-      lecturer: "Meera Sharma",
-      created_at: "2025-01-15",
-      courseStatus: true,
-      topics: [
-        {
-          title: "Introduction",
-          topicStatus: "approved",
-          lectures: [
-            {
-              title: "What is Web Development?",
-              videoUrl: { url: "...", filename: "..." },
-              status: "approved",
-              coveredDuration: 3,
-              lectureDuration: 10,
-            },
-          ],
-        },
-        {
-          title: "JavaScript Basics",
-          lectures: [
-            {
-              title: "Variables",
-              coveredDuration: 0,
-              lectureDuration: 12,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: 3,
-      title: "Java Full Stack Roadmap",
-      category: "Java",
-      description: "Master Java + Spring Boot + Microservices.",
-      thumbnail: "https://i.ytimg.com/vi/MHn66JJH5zs/maxresdefault.jpg",
-      reviews: [4, 4, 5],
-      priceINR: 3599,
-      priceUSD: 44.99,
-      lecturer: "Rahul Verma",
-      created_at: "2025-01-20",
-      courseStatus: true,
-      topics: [
-        {
-          title: "Introduction",
-          topicStatus: "approved",
-          lectures: [
-            {
-              title: "What is Web Development?",
-              videoUrl: { url: "...", filename: "..." },
-              status: "approved",
-              coveredDuration: 3,
-              lectureDuration: 10,
-            },
-          ],
-        },
-        {
-          title: "JavaScript Basics",
-          lectures: [
-            {
-              title: "Variables",
-              coveredDuration: 0,
-              lectureDuration: 12,
-            },
-          ],
-        },
-      ],
-    },
-
-    /* auto-generate 16 more */
-    ...[
-      "HTML",
-      "CSS",
-      "JavaScript",
-      "React",
-      "Python",
-      "Java",
-      "Data Science",
-      "Machine Learning",
-      "AI",
-      "Angular",
-      "Node.js",
-      "SQL",
-      "Cyber Security",
-      "Backend",
-      "Frontend",
-      "UI/UX",
-    ].map((category, i) => ({
-      id: i + 5,
-      title: `${category} Complete Guide`,
-      category,
-      description: `Learn ${category} from scratch with real examples.`,
-      thumbnail: "https://i.ytimg.com/vi/MHn66JJH5zs/maxresdefault.jpg",
-      reviews: [4, 5, 4, 5],
-      priceINR: 1999 + i * 120,
-      priceUSD: 24.99 + i,
-      lecturer: ["Amit Das", "Sneha Roy", "Dev Mehta", "Niharika Sahu"][i % 4],
-      created_at: "2025-01-01",
-      courseStatus: i % 3 !== 0,
-      topics: [
-        {
-          title: "Introduction",
-          topicStatus: "approved",
-          lectures: [
-            {
-              title: "What is Web Development?",
-              videoUrl: { url: "...", filename: "..." },
-              status: "approved",
-              coveredDuration: 3,
-              lectureDuration: 10,
-            },
-          ],
-        },
-        {
-          title: "JavaScript Basics",
-          lectures: [
-            {
-              title: "Variables",
-              coveredDuration: 0,
-              lectureDuration: 12,
-            },
-          ],
-        },
-      ],
-    })),
-  ];
 
   /* -----------------------------------------------------
      STATE MANAGEMENT
@@ -220,31 +48,47 @@ const ExplorePage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
-  // Skeleton loading
-  const [loading, setLoading] = useState(true);
+  // Filter only active courses
+  const activeCourses = (courses || []).filter((c) => c.courseStatus !== false);
 
-  useEffect(() => {
-    setTimeout(() => setLoading(false), 1000); // fake API delay
-  }, []);
+  // Helper to get lecturer name
+  const getLecturerName = (course) =>
+    course?.creator?.name || course?.lecturer?.name || course?.lecturer || "Unknown";
+
+  // Helper to get image URL
+  const getImageUrl = (course) =>
+    course?.courseImage?.url ||
+    course?.courseImage?.secure_url ||
+    (Array.isArray(course?.courseImage) && course.courseImage[0]?.url) ||
+    course?.thumbnail ||
+    "/placeholder-course.png";
+
+  // Helper to get created date
+  const getCreatedDate = (course) => {
+    const date = course?.createdAt || course?.created_at;
+    return date ? new Date(date).toLocaleDateString() : "";
+  };
 
   // unique dropdown lists
-  const categories = ["All", ...new Set(dummyCourses.map((c) => c.category))];
-  const lecturers = ["All", ...new Set(dummyCourses.map((c) => c.lecturer))];
+  const categories = ["All", ...new Set(activeCourses.map((c) => c.category).filter(Boolean))];
+  const lecturers = ["All", ...new Set(activeCourses.map((c) => getLecturerName(c)))];
 
-  const averagereviews = (arr) =>
-    Math.round(arr.reduce((a, b) => a + b, 0) / arr.length);
+  const averagereviews = (arr) => {
+    if (!arr || !Array.isArray(arr) || arr.length === 0) return 0;
+    return Math.round(arr.reduce((a, b) => a + b, 0) / arr.length);
+  };
 
   /* -----------------------------------------------------
      FILTER + SORT LOGIC
   ------------------------------------------------------ */
   const filteredCourses = useMemo(() => {
-    let list = dummyCourses.filter((c) => c.courseStatus);
+    let list = [...activeCourses];
 
     if (selectedCategory !== "All")
       list = list.filter((c) => c.category === selectedCategory);
 
     if (selectedLecturer !== "All")
-      list = list.filter((c) => c.lecturer === selectedLecturer);
+      list = list.filter((c) => getLecturerName(c) === selectedLecturer);
 
     if (searchQuery.trim())
       list = list.filter((c) =>
@@ -253,27 +97,27 @@ const ExplorePage = () => {
 
     switch (sortType) {
       case "price-low":
-        list.sort((a, b) => a.priceINR - b.priceINR);
+        list.sort((a, b) => (a.price || 0) - (b.price || 0));
         break;
 
       case "price-high":
-        list.sort((a, b) => b.priceINR - a.priceINR);
+        list.sort((a, b) => (b.price || 0) - (a.price || 0));
         break;
 
       case "reviews":
         list.sort(
-          (a, b) => averagereviews(b.reviews) - averagereviews(a.reviews)
+          (a, b) => averagereviews(b.reviews || []) - averagereviews(a.reviews || [])
         );
         break;
 
       case "latest":
       default:
-        list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        list.sort((a, b) => new Date(b.createdAt || b.created_at || 0) - new Date(a.createdAt || a.created_at || 0));
         break;
     }
 
     return list;
-  }, [searchQuery, selectedCategory, selectedLecturer, sortType]);
+  }, [activeCourses, searchQuery, selectedCategory, selectedLecturer, sortType]);
 
   /* Pagination Slice */
   const totalPages = Math.ceil(filteredCourses.length / itemsPerPage);
@@ -361,15 +205,16 @@ const ExplorePage = () => {
           ? [...Array(8)].map((_, i) => <SkeletonCard key={i} />)
           : paginatedData.map((course, index) => (
               <motion.div
-                key={course.id}
+                key={course._id || course.id}
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
                 className="bg-white rounded-xl shadow-md border overflow-hidden"
               >
                 <img
-                  src={course.thumbnail}
+                  src={getImageUrl(course)}
                   className="w-full h-40 object-cover"
+                  alt={course.title}
                 />
 
                 <div className="p-4 flex flex-col justify-between h-[210px]">
@@ -387,7 +232,7 @@ const ExplorePage = () => {
                         <span
                           key={i}
                           className={`text-sm ${
-                            i < averagereviews(course.reviews)
+                            i < averagereviews(course.reviews || [])
                               ? "text-yellow-500"
                               : "text-gray-300"
                           }`}
@@ -396,7 +241,7 @@ const ExplorePage = () => {
                         </span>
                       ))}
                       <span className="text-xs text-gray-600 ml-2">
-                        ({course.reviews.length})
+                        ({course.reviews?.length || 0})
                       </span>
                     </div>
                   </div>
@@ -405,14 +250,14 @@ const ExplorePage = () => {
                   <div className="flex justify-between mt-2 text-sm">
                     <p className="font-semibold">
                       {currency === "INR"
-                        ? `₹${course.priceINR}`
-                        : `$${course.priceUSD}`}
+                        ? `₹${course.price || 0}`
+                        : `$${Math.round((course.price || 0) / 83)}`}
                     </p>
-                    <p className="text-xs text-gray-500">{course.created_at}</p>
+                    <p className="text-xs text-gray-500">{getCreatedDate(course)}</p>
                   </div>
 
                   <p className="text-xs text-gray-500 mt-1 truncate">
-                    By {course.lecturer}
+                    By {getLecturerName(course)}
                   </p>
 
                   <motion.button
