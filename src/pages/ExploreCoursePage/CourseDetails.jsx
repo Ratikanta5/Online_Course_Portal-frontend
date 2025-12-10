@@ -14,6 +14,8 @@ import {
   Star,
 } from "lucide-react";
 import { getExchangeRate } from "../../utils/exchangeRate";
+import EnrollmentPayment from "../../components/EnrollmentPayment";
+import { useUser } from "../../context/UserContext";
 
 // Format date and time professionally
 const formatDateTime = (dateString) => {
@@ -41,6 +43,7 @@ const formatDateTime = (dateString) => {
 const CourseDetails = () => {
   const location = useLocation();
   const rawState = location?.state;
+  const { user } = useUser();
 
   // Normalize course input (some routes pass an array, some a single object)
   const resolveCourse = (input) => {
@@ -54,6 +57,9 @@ const CourseDetails = () => {
   const course = resolveCourse(rawState);
   const [openTopics, setOpenTopics] = useState(new Set());
   const [exchangeRate, setExchangeRate] = useState(83);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [enrolled, setEnrolled] = useState(false);
+  const [checkingEnrollment, setCheckingEnrollment] = useState(true);
 
   // Fetch real-time exchange rate on component mount
   useEffect(() => {
@@ -63,6 +69,38 @@ const CourseDetails = () => {
     };
     fetchRate();
   }, []);
+
+  // Check enrollment status
+  useEffect(() => {
+    const checkEnrollment = async () => {
+      if (!user || !course?._id) {
+        setCheckingEnrollment(false);
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/payment/enrollment-status/${course._id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const data = await response.json();
+        if (data.success && data.enrolled) {
+          setEnrolled(true);
+        }
+      } catch (error) {
+        console.error("Error checking enrollment:", error);
+      } finally {
+        setCheckingEnrollment(false);
+      }
+    };
+
+    checkEnrollment();
+  }, [user, course?._id]);
 
   if (!course) {
     return (
@@ -248,9 +286,17 @@ const CourseDetails = () => {
           <motion.button
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
-            className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl shadow-md hover:bg-blue-700 transition mb-6"
+            onClick={() => {
+              if (user) {
+                setPaymentOpen(true);
+              } else {
+                alert("Please login to enroll");
+              }
+            }}
+            disabled={enrolled}
+            className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl shadow-md hover:bg-blue-700 transition mb-6 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Enroll Now
+            {enrolled ? "Enrolled ✓" : "Enroll Now"}
           </motion.button>
 
           {/* Meta Info */}
@@ -315,6 +361,20 @@ const CourseDetails = () => {
   </div>
 </motion.div>
 
+      {/* Payment Modal */}
+      <EnrollmentPayment
+        isOpen={paymentOpen}
+        courseId={course?._id}
+        courseName={course?.title}
+        coursePrice={course?.price}
+        courseImage={imageUrl}
+        onClose={() => setPaymentOpen(false)}
+        onSuccess={(enrollment) => {
+          setEnrolled(true);
+          setPaymentOpen(false);
+          // Refresh enrollment status if needed
+        }}
+      />
     </div>
   );
 };
