@@ -216,6 +216,10 @@ export default function EnrollmentPayment({ courseId, courseName, coursePrice, c
     const createPaymentIntent = async () => {
       try {
         const token = getToken();
+        if (!token) {
+          console.error("No authentication token found");
+          return;
+        }
         const response = await axios.post(
           `${import.meta.env.VITE_API_URL}/api/payment/create-payment-intent`,
           { courseId },
@@ -230,6 +234,19 @@ export default function EnrollmentPayment({ courseId, courseName, coursePrice, c
         }
       } catch (err) {
         console.error("Error creating payment intent:", err);
+        // Check if already enrolled
+        if (err.response?.data?.message?.includes("already") || err.response?.data?.message?.includes("Already")) {
+          alert("You are already enrolled in this course!");
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        } else if (err.response?.status === 401) {
+          console.error("Unauthorized - please login again");
+          alert("Please login again to continue");
+        } else {
+          console.error("Payment Intent Error:", err.response?.data || err.message);
+          alert("Error creating payment: " + (err.response?.data?.message || err.message));
+        }
       }
     };
 

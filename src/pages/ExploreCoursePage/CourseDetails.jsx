@@ -16,6 +16,7 @@ import {
 import { getExchangeRate } from "../../utils/exchangeRate";
 import EnrollmentPayment from "../../components/EnrollmentPayment";
 import { useUser } from "../../context/UserContext";
+import { getToken } from "../../utils/auth";
 
 // Format date and time professionally
 const formatDateTime = (dateString) => {
@@ -79,7 +80,11 @@ const CourseDetails = () => {
       }
 
       try {
-        const token = localStorage.getItem("token");
+        const token = getToken();
+        if (!token) {
+          setCheckingEnrollment(false);
+          return;
+        }
         const response = await fetch(
           `${import.meta.env.VITE_API_URL}/api/payment/enrollment-status/${course._id}`,
           {

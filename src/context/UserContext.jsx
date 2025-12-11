@@ -14,18 +14,23 @@ export const UserProvider = ({ children }) => {
   useEffect(() => {
     const fetchMe = async () => {
       try {
-        const parsed = getUser()
+        // Get stored user data
+        const parsed = getUser();
+        
+        // If no user stored, user is not logged in
         if (!parsed) {
+          setUser(null);
           setLoading(false);
           return;
         }
 
         if (!parsed?.id) {
+          setUser(null);
           setLoading(false);
           return;
         }
 
-        // Call /me with id (adjust URL to match your backend)
+        // Call /me to get full user details
         const { data } = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/auth/me`,
           { params: { id: parsed.id, role: parsed.role } }
@@ -34,14 +39,18 @@ export const UserProvider = ({ children }) => {
         if (data?.user) {
           setUser(data.user);
         } else {
-          // backend returned something unexpected → clear trash
-          localStorage.removeItem("user");
+          // backend returned something unexpected → clear and reset
+          sessionStorage.removeItem("user");
+          sessionStorage.removeItem("authToken");
+          setUser(null);
         }
       } catch (err) {
         console.error("Failed to fetch /me:", err);
         setError("Failed to load user information");
-        // probably invalid localStorage → remove it
-        localStorage.removeItem("user");
+        // probably invalid sessionStorage → remove it
+        sessionStorage.removeItem("user");
+        sessionStorage.removeItem("authToken");
+        setUser(null);
       } finally {
         setLoading(false);
       }

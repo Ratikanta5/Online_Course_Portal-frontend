@@ -35,7 +35,7 @@ import { useUser } from "../../context/UserContext";
 import { useCourses } from "../../context/CourseContext";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { getToken } from "../../utils/auth";
+import { getToken, clearAuth } from "../../utils/auth";
 
 const FacultyDash = () => {
   const { user, loading: userLoading } = useUser();
@@ -47,10 +47,10 @@ const FacultyDash = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [lecturerCourses, setLecturerCourses] = useState([]);
   const [lecturerCoursesLoading, setLecturerCoursesLoading] = useState(false);
+  const [lecturerCoursesError, setLecturerCoursesError] = useState(null);
 
   const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("user");
+    clearAuth();
     navigate("/");
     window.location.reload();
   };
@@ -59,10 +59,13 @@ const FacultyDash = () => {
   const fetchLecturerCourses = async () => {
     try {
       setLecturerCoursesLoading(true);
-      const token = localStorage.getItem("authToken");
+      setLecturerCoursesError(null);
+      const token = sessionStorage.getItem("authToken");
       
       console.log("Fetching from:", `${import.meta.env.VITE_API_URL}/api/lecturer/courses`);
       console.log("Token:", token);
+      console.log("User role:", user?.role);
+      console.log("Full user object:", user);
       
       const res = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/lecturer/courses`,
@@ -82,6 +85,7 @@ const FacultyDash = () => {
       console.error("Error fetching lecturer courses:", error);
       console.error("Error response data:", error.response?.data);
       console.error("Error status:", error.response?.status);
+      setLecturerCoursesError(error.response?.data?.message || "Failed to load courses");
     } finally {
       setLecturerCoursesLoading(false);
     }
@@ -170,6 +174,31 @@ const FacultyDash = () => {
             <BookOpen className="w-10 h-10 text-purple-600" />
           </motion.div>
           <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (lecturerCoursesError) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-[70px] flex items-center justify-center px-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-red-600 mb-2">Access Denied</h2>
+          <p className="text-gray-600 mb-4">{lecturerCoursesError}</p>
+          <p className="text-sm text-gray-500 mb-6">
+            Make sure you logged in as a lecturer with the correct role.
+          </p>
+          <button
+            onClick={() => {
+              clearAuth();
+              navigate("/");
+            }}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            Back to Home
+          </button>
         </div>
       </div>
     );

@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom";
 
 // ⬅️ USE YOUR GLOBAL USER CONTEXT
 import { useUser } from "../context/UserContext";
-import { removeUser, removeToken } from "../utils/auth";
+import { clearAuth } from "../utils/auth";
 
 const Nav = ({ openLogin }) => {
   const { user, loading, setUser } = useUser();   // ← here
@@ -153,7 +153,7 @@ const Nav = ({ openLogin }) => {
                   {/* Role-based options */}
                   {user.role === "student" && (
                     <button
-                      onClick={() => navigate("/my-enrollments")}
+                      onClick={() => navigate(`/${user.role}`)}
                       className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
                     >
                       <BookOpen size={16} /> My Enrollments
@@ -172,8 +172,7 @@ const Nav = ({ openLogin }) => {
                   {/* Logout */}
                   <button
                     onClick={() => {
-                      removeUser();
-                      removeToken();
+                      clearAuth();
                       if (setUser) setUser(null);
                       setOpenProfile(false);
                       navigate("/");

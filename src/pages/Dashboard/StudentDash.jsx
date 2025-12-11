@@ -1,5 +1,6 @@
 // src/pages/Dashboard/StudentDash.jsx
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   UserCircle,
@@ -8,31 +9,89 @@ import {
   Award,
   ArrowRight,
   PlayCircle,
+  CheckCircle,
+  AlertCircle,
+  Loader,
 } from "lucide-react";
 import { useUser } from "../../context/UserContext";
+import axios from "axios";
+import { getToken } from "../../utils/auth";
 
 const StudentDash = () => {
-  const { user } = useUser(); // ✅ use context instead of getUser()
+  const { user } = useUser();
+  const navigate = useNavigate();
+  const [enrollments, setEnrollments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Dummy enrolled courses
-  const enrolledCourses = [
-    {
-      id: 1,
-      title: "React Mastery Bootcamp",
-      progress: 65,
-      thumbnail:
-        "https://i.ytimg.com/vi/MHn66JJH5zs/maxresdefault.jpg",
-      lastAccessed: "2 days ago",
-    },
-    {
-      id: 2,
-      title: "Python for Data Science",
-      progress: 40,
-      thumbnail:
-        "https://i.ytimg.com/vi/MHn66JJH5zs/maxresdefault.jpg",
-      lastAccessed: "5 days ago",
-    },
-  ];
+  useEffect(() => {
+    const fetchEnrollments = async () => {
+      try {
+        setLoading(true);
+        const token = getToken();
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/payment/my-enrollments`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        if (response.data.success) {
+          setEnrollments(response.data.enrollments || []);
+        }
+      } catch (err) {
+        console.error("Error fetching enrollments:", err);
+        setError("Failed to load enrollments");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchEnrollments();
+    }
+  }, [user]);
+
+  const getPaymentStatusBadge = (paymentStatus) => {
+    switch (paymentStatus) {
+      case "success":
+        return (
+          <span className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+            <CheckCircle className="w-4 h-4" />
+            Payment Success
+          </span>
+        );
+      case "pending":
+        return (
+          <span className="flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-700 text-xs font-semibold rounded-full">
+            <AlertCircle className="w-4 h-4" />
+            Payment Pending
+          </span>
+        );
+      case "failed":
+        return (
+          <span className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
+            <AlertCircle className="w-4 h-4" />
+            Payment Failed
+          </span>
+        );
+      default:
+        return (
+          <span className="flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">
+            Unknown
+          </span>
+        );
+    }
+  };
+
+  const canAccessCourse = (enrollment) => {
+    return enrollment.paymentStatus === "success";
+  };
 
   return (
     <div className="pt-[90px] px-4 sm:px-6 lg:px-16 pb-16 min-h-screen bg-gray-50">
@@ -61,12 +120,12 @@ const StudentDash = () => {
           {
             icon: <BookOpen className="w-6 h-6 text-blue-600" />,
             label: "Enrolled Courses",
-            value: enrolledCourses.length,
+            value: enrollments.filter(e => e.paymentStatus === "success").length,
           },
           {
             icon: <Clock className="w-6 h-6 text-blue-600" />,
-            label: "Hours Studied",
-            value: 32,
+            label: "Pending Payments",
+            value: enrollments.filter(e => e.paymentStatus === "pending").length,
           },
           {
             icon: <Award className="w-6 h-6 text-blue-600" />,
@@ -99,49 +158,76 @@ const StudentDash = () => {
         Your Courses
       </h2>
 
-      {enrolledCourses.length === 0 ? (
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader className="w-6 h-6 text-blue-600 animate-spin" />
+          <p className="ml-2 text-gray-600">Loading your enrollments...</p>
+        </div>
+      ) : error ? (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          {error}
+        </div>
+      ) : enrollments.length === 0 ? (
         <p className="text-gray-600">You have not enrolled in any courses yet.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {enrolledCourses.map((c, index) => (
+          {enrollments.map((enrollment, index) => (
             <motion.div
-              key={c.id}
+              key={enrollment._id}
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden hover:shadow-lg transition"
             >
               <img
-                src={c.thumbnail}
-                alt={c.title}
+                src={
+                  typeof enrollment.courseId?.courseImage === 'string'
+                    ? enrollment.courseId.courseImage
+                    : enrollment.courseId?.courseImage?.url || "https://via.placeholder.com/300x150"
+                }
+                alt={enrollment.courseId?.title || "Course"}
                 className="w-full h-36 object-cover"
+                onError={(e) => {
+                  e.target.src = "https://via.placeholder.com/300x150";
+                }}
               />
 
               <div className="p-4">
-                <h3 className="font-bold text-slate-900 text-sm">{c.title}</h3>
+                <h3 className="font-bold text-slate-900 text-sm">{enrollment.courseId?.title || "Unknown Course"}</h3>
 
-                {/* Progress bar */}
+                {/* Payment Status Badge */}
                 <div className="mt-3">
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full"
-                      style={{ width: `${c.progress}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-xs text-gray-600 mt-1">{c.progress}% completed</p>
+                  {getPaymentStatusBadge(enrollment.paymentStatus)}
                 </div>
 
+                {/* Show enrollment date */}
                 <p className="mt-2 flex items-center gap-2 text-xs text-gray-500">
-                  <Clock className="w-4 h-4" /> Last accessed: {c.lastAccessed}
+                  <Clock className="w-4 h-4" /> 
+                  Enrolled: {new Date(enrollment.createdAt).toLocaleDateString()}
                 </p>
 
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-full mt-4 py-2 bg-blue-600 text-white rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition"
-                >
-                  <PlayCircle className="w-5 h-5" /> Continue
-                </motion.button>
+                {/* Continue button - only if payment successful */}
+                {canAccessCourse(enrollment) ? (
+                  <motion.button
+                    onClick={() => {
+                      navigate(`/learn/${enrollment.courseId._id}`, {
+                        state: { course: enrollment.courseId },
+                      });
+                    }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="w-full mt-4 py-2 bg-blue-600 text-white rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition"
+                  >
+                    <PlayCircle className="w-5 h-5" /> Start Learning
+                  </motion.button>
+                ) : (
+                  <motion.button
+                    disabled
+                    className="w-full mt-4 py-2 bg-gray-300 text-gray-600 rounded-lg flex items-center justify-center gap-2 cursor-not-allowed"
+                  >
+                    <AlertCircle className="w-5 h-5" /> Awaiting Payment
+                  </motion.button>
+                )}
               </div>
             </motion.div>
           ))}

@@ -1,0 +1,60 @@
+# Quick Backend Checklist
+
+## 4 Simple Steps to Implement Progress Persistence
+
+### ✅ Frontend Status
+- CourseLearning.jsx: Fully implemented
+- Auto-save: Every 30 seconds ✓
+- Load on mount: Implemented ✓
+- Save on complete: Implemented ✓
+
+---
+
+### ⏳ Backend TODO (4 Tasks)
+
+#### 1️⃣ UPDATE: models/Enrollment.js
+Add 7 new fields to enrollment schema (copy from BACKEND_IMPLEMENTATION_NEEDED.md)
+- completedLectures: Array of {topicIndex, lectureIndex, completedAt}
+- videoProgress: Map of lecture progress
+- currentTopicIndex: Number
+- currentLectureIndex: Number
+- progressPercentage: Number
+- lastAccessedAt: Date
+- updatedAt: Date
+
+#### 2️⃣ CREATE: Controllers/progressController.js
+Create new file with 2 functions:
+- `saveProgress()`: POST handler
+- `getProgress()`: GET handler
+(Full code provided in BACKEND_IMPLEMENTATION_NEEDED.md)
+
+#### 3️⃣ CREATE: routes/progressRoutes.js
+Create new file with 2 routes:
+- `POST /save`: saveProgress
+- `GET /:courseId`: getProgress
+(Full code provided in BACKEND_IMPLEMENTATION_NEEDED.md)
+
+#### 4️⃣ UPDATE: server.js (or index.js)
+Add one line:
+```javascript
+app.use("/api/progress", require("./routes/progressRoutes"));
+```
+
+---
+
+## That's It! ✅
+
+Once these 4 tasks are done:
+- Course progress persists on reload ✓
+- Course progress persists on tab switch ✓
+- Course progress persists on browser close ✓
+- Users resume from where they left off ✓
+- Auto-saves every 30 seconds ✓
+
+---
+
+## Files to Reference
+- Full implementation guide: `BACKEND_IMPLEMENTATION_NEEDED.md`
+- Architectural overview: `PROGRESS_PERSISTENCE_GUIDE.md`
+- Frontend code: `src/pages/Learning/CourseLearning.jsx`
+

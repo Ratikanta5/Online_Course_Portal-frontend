@@ -44,9 +44,14 @@ const Login = ({ isModal, closeLogin }) => {
       const { id, role } = data.user;
       const { token } = data;
       console.log("Login response token:", token);
-      // persist token & minimal user info
+      
+      // CLEAR OLD USER DATA FIRST (session storage is tab-specific)
+      sessionStorage.removeItem("user");
+      sessionStorage.removeItem("authToken");
+      
+      // persist new token & user info
       setToken(token);
-      console.log("Token stored in localStorage:", localStorage.getItem("authToken"));
+      console.log("Token stored in sessionStorage:", sessionStorage.getItem("authToken"));
       persistUser({ id, role });
 
       // fetch full user profile (/me) so we have image/bio/createdAt

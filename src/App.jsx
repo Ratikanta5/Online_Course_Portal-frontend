@@ -5,6 +5,7 @@ import AppLayout from "./AppLayout";
 import Home from "./pages/Home";
 import ExplorePage from "./pages/ExploreCoursePage/ExplorePage";
 import CourseDetails from "./pages/ExploreCoursePage/CourseDetails";
+import CourseLearning from "./pages/Learning/CourseLearning";
 import ProtectedRoute from "./protectedRouting/ProtectedRoute";
 import AdminDash from "./pages/Dashboard/AdminDash";
 import FacultyDash from "./pages/Dashboard/FacultyDash";
@@ -31,6 +32,7 @@ const App = () => {
         {path: "/my-enrollements",element:<StudentDash/>},
         { path: "/explore-courses", element: <ExplorePage /> },
         { path: "/course-about", element: <CourseDetails /> },
+        { path: "/learn/:courseId", element: <CourseLearning /> },
         { path: "/verify/:token", element: <VerifyEmail/> },
         { path: "/profile", element: <ProfilePage /> },
         {path:"/lecturer/dashboard",element:<FacultyDash/>},
