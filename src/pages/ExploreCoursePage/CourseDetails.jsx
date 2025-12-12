@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { getExchangeRate } from "../../utils/exchangeRate";
 import EnrollmentPayment from "../../components/EnrollmentPayment";
+import CourseReview from "../../components/CourseReview";
 import { useUser } from "../../context/UserContext";
 import { getToken } from "../../utils/auth";
 
@@ -115,9 +116,9 @@ const CourseDetails = () => {
     );
   }
 
-  const avgRating = course?.reviews && course.reviews.length
-    ? Math.round(course.reviews.reduce((a, b) => a + b, 0) / course.reviews.length)
-    : 0;
+  // Use averageRating from API if available
+  const avgRating = course?.averageRating || 0;
+  const totalReviews = course?.totalReviews || 0;
 
   // Resolve image URL from several possible shapes
   const imageUrl =
@@ -155,14 +156,14 @@ const CourseDetails = () => {
                 <Star
                   key={i}
                   size={18}
-                  className={i < avgRating ? "" : "text-gray-300"}
-                  fill={i < avgRating ? "gold" : "none"}
+                  className={i < Math.round(avgRating) ? "" : "text-gray-300"}
+                  fill={i < Math.round(avgRating) ? "gold" : "none"}
                 />
               ))}
             </div>
 
             <span className="text-sm text-gray-600">
-              {course.reviews?.length || 0} reviews
+              {totalReviews} {totalReviews === 1 ? "review" : "reviews"}
             </span>
           </div>
 
@@ -365,6 +366,19 @@ const CourseDetails = () => {
     </div>
   </div>
 </motion.div>
+
+      {/* ======================= REVIEWS SECTION ======================= */}
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mt-14"
+      >
+        <CourseReview
+          courseId={course?._id}
+          courseName={course?.title}
+          isEnrolled={enrolled}
+        />
+      </motion.div>
 
       {/* Payment Modal */}
       <EnrollmentPayment

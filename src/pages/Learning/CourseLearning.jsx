@@ -21,11 +21,13 @@ import {
   Maximize,
   Minimize,
   AlertCircle,
+  Star,
 } from "lucide-react";
 import { useUser } from "../../context/UserContext";
 import { useCourses } from "../../context/CourseContext";
 import axios from "axios";
 import { getToken } from "../../utils/auth";
+import CourseReview from "../../components/CourseReview";
 
 // Helper function to normalize course data - handle both Topics and topics field names
 const normalizeCourseData = (course) => {
@@ -64,6 +66,7 @@ const CourseLearning = () => {
   const [completedLectures, setCompletedLectures] = useState(new Set());
   const [videoProgress, setVideoProgress] = useState({});
   const [showDescription, setShowDescription] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview"); // "overview" | "description" | "reviews"
   const [showControls, setShowControls] = useState(true);
   const [savedProgress, setSavedProgress] = useState(null);
   const [isSavingProgress, setIsSavingProgress] = useState(false);
@@ -918,13 +921,13 @@ const CourseLearning = () => {
         </div>
 
         {/* Lecture Info & Description */}
-        <div className="bg-gray-800 border-t border-gray-700 max-h-[300px] overflow-y-auto">
+        <div className="bg-gray-800 border-t border-gray-700 max-h-[400px] overflow-y-auto">
           {/* Tabs */}
-          <div className="flex border-b border-gray-700 sticky top-0 bg-gray-800">
+          <div className="flex border-b border-gray-700 sticky top-0 bg-gray-800 z-10">
             <button
-              onClick={() => setShowDescription(false)}
+              onClick={() => setActiveTab("overview")}
               className={`flex-1 px-6 py-4 font-semibold transition ${
-                !showDescription
+                activeTab === "overview"
                   ? "text-blue-500 border-b-2 border-blue-500"
                   : "text-gray-400 hover:text-white"
               }`}
@@ -932,20 +935,31 @@ const CourseLearning = () => {
               Overview
             </button>
             <button
-              onClick={() => setShowDescription(true)}
+              onClick={() => setActiveTab("description")}
               className={`flex-1 px-6 py-4 font-semibold transition ${
-                showDescription
+                activeTab === "description"
                   ? "text-blue-500 border-b-2 border-blue-500"
                   : "text-gray-400 hover:text-white"
               }`}
             >
               Description
             </button>
+            <button
+              onClick={() => setActiveTab("reviews")}
+              className={`flex-1 px-6 py-4 font-semibold transition flex items-center justify-center gap-2 ${
+                activeTab === "reviews"
+                  ? "text-blue-500 border-b-2 border-blue-500"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              <Star className="w-4 h-4" />
+              Reviews
+            </button>
           </div>
 
           {/* Content */}
           <div className="p-6">
-            {!showDescription ? (
+            {activeTab === "overview" && (
               // Overview Tab
               <div className="space-y-4">
                 <div>
@@ -995,7 +1009,9 @@ const CourseLearning = () => {
                   </button>
                 </div>
               </div>
-            ) : (
+            )}
+
+            {activeTab === "description" && (
               // Description Tab
               <div>
                 <h3 className="text-lg font-bold text-white mb-4">
@@ -1043,6 +1059,15 @@ const CourseLearning = () => {
                   </div>
                 </div>
               </div>
+            )}
+
+            {activeTab === "reviews" && (
+              // Reviews Tab
+              <CourseReview
+                courseId={course?._id}
+                courseName={course?.title}
+                isEnrolled={true}
+              />
             )}
           </div>
         </div>

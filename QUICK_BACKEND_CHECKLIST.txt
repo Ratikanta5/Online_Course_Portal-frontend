@@ -10,6 +10,28 @@
 
 ---
 
+### 🔴 CRITICAL: Public Course Listing
+
+The `/api/courses` endpoint MUST be accessible WITHOUT authentication!
+This is required so users can browse courses before logging in.
+
+**Option 1 (Recommended):** Make `/api/courses` public (no auth middleware)
+**Option 2:** Create a separate `/api/courses/public` endpoint
+
+The frontend will try `/api/courses` first, then fall back to `/api/courses/public` if auth fails.
+
+Example backend route update:
+```javascript
+// routes/courseRoutes.js
+// BEFORE (requires auth):
+router.get("/", authMiddleware, getAllCourses);
+
+// AFTER (public):
+router.get("/", getAllCourses);  // Remove authMiddleware
+```
+
+---
+
 ### ⏳ Backend TODO (4 Tasks)
 
 #### 1️⃣ UPDATE: models/Enrollment.js
@@ -50,6 +72,128 @@ Once these 4 tasks are done:
 - Course progress persists on browser close ✓
 - Users resume from where they left off ✓
 - Auto-saves every 30 seconds ✓
+
+---
+
+## 🌟 NEW: Course Reviews API
+
+The frontend now has a complete review system. Backend needs these endpoints:
+
+### Review Model (models/Review.js)
+```javascript
+const reviewSchema = new mongoose.Schema({
+  course: { type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  rating: { type: Number, required: true, min: 1, max: 5 },
+  comment: { type: String, maxLength: 1000 },
+  helpfulCount: { type: Number, default: 0 },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+// One review per user per course
+reviewSchema.index({ course: 1, user: 1 }, { unique: true });
+```
+
+### Review Routes (routes/reviewRoutes.js)
+```javascript
+const express = require('express');
+const router = express.Router();
+const reviewController = require('../Controllers/reviewController');
+const verifyToken = require('../middlewares/authMiddleware');
+
+// GET reviews for a course (public, but returns userReview if logged in)
+router.get('/course/:courseId', reviewController.getCourseReviews);
+
+// POST new review (auth required)
+router.post('/', verifyToken, reviewController.createReview);
+
+// PUT update review (auth required)
+router.put('/:reviewId', verifyToken, reviewController.updateReview);
+
+// DELETE review (auth required)
+router.delete('/:reviewId', verifyToken, reviewController.deleteReview);
+
+module.exports = router;
+```
+
+### Review Controller (Controllers/reviewController.js)
+```javascript
+// GET /api/reviews/course/:courseId
+exports.getCourseReviews = async (req, res) => {
+  const { courseId } = req.params;
+  const userId = req.user?._id; // Optional - may not be logged in
+
+  const reviews = await Review.find({ course: courseId })
+    .populate('user', 'name profileImage')
+    .sort({ createdAt: -1 });
+
+  let userReview = null;
+  if (userId) {
+    userReview = reviews.find(r => r.user._id.toString() === userId.toString());
+  }
+
+  res.json({ success: true, reviews, userReview });
+};
+
+// POST /api/reviews
+exports.createReview = async (req, res) => {
+  const { courseId, rating, comment } = req.body;
+  const userId = req.user._id;
+
+  // Check if user is enrolled
+  const enrollment = await Enrollment.findOne({ user: userId, course: courseId });
+  if (!enrollment) {
+    return res.status(403).json({ success: false, message: 'Must be enrolled to review' });
+  }
+
+  // Check for existing review
+  const existing = await Review.findOne({ course: courseId, user: userId });
+  if (existing) {
+    return res.status(400).json({ success: false, message: 'Already reviewed' });
+  }
+
+  const review = await Review.create({ course: courseId, user: userId, rating, comment });
+  res.json({ success: true, review });
+};
+
+// PUT /api/reviews/:reviewId
+exports.updateReview = async (req, res) => {
+  const { reviewId } = req.params;
+  const { rating, comment } = req.body;
+  const userId = req.user._id;
+
+  const review = await Review.findOneAndUpdate(
+    { _id: reviewId, user: userId },
+    { rating, comment, updatedAt: new Date() },
+    { new: true }
+  );
+
+  if (!review) {
+    return res.status(404).json({ success: false, message: 'Review not found' });
+  }
+
+  res.json({ success: true, review });
+};
+
+// DELETE /api/reviews/:reviewId
+exports.deleteReview = async (req, res) => {
+  const { reviewId } = req.params;
+  const userId = req.user._id;
+
+  const review = await Review.findOneAndDelete({ _id: reviewId, user: userId });
+  if (!review) {
+    return res.status(404).json({ success: false, message: 'Review not found' });
+  }
+
+  res.json({ success: true, message: 'Review deleted' });
+};
+```
+
+### Add to server.js
+```javascript
+app.use("/api/reviews", require("./routes/reviewRoutes"));
+```
 
 ---
 

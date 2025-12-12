@@ -48,11 +48,48 @@ const FacultyDash = () => {
   const [lecturerCourses, setLecturerCourses] = useState([]);
   const [lecturerCoursesLoading, setLecturerCoursesLoading] = useState(false);
   const [lecturerCoursesError, setLecturerCoursesError] = useState(null);
+  
+  // Earnings state
+  const [earnings, setEarnings] = useState({
+    totalEarning: 0,
+    totalEnrollments: 0,
+    breakdown: []
+  });
+  const [earningsLoading, setEarningsLoading] = useState(false);
 
   const handleLogout = () => {
     clearAuth();
     navigate("/");
     window.location.reload();
+  };
+
+  // Fetch lecturer's earnings
+  const fetchLecturerEarnings = async () => {
+    try {
+      setEarningsLoading(true);
+      const token = sessionStorage.getItem("authToken");
+      
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/payment/lecturer-earnings`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (res.data.success) {
+        setEarnings(res.data.revenue || {
+          totalEarning: 0,
+          totalEnrollments: 0,
+          breakdown: []
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching earnings:", error);
+    } finally {
+      setEarningsLoading(false);
+    }
   };
 
   // Fetch lecturer's own courses (with all statuses: pending, approved, rejected)
@@ -95,21 +132,19 @@ const FacultyDash = () => {
   useEffect(() => {
     if (user?._id) {
       fetchLecturerCourses();
+      fetchLecturerEarnings();
     }
   }, [user?._id]);
 
   // Use lecturer courses instead of filtered courses
   const myCourses = lecturerCourses;
 
-  // Calculate stats
-  const totalEnrollments = myCourses.reduce(
+  // Calculate stats - use real earnings from API
+  const totalEnrollments = earnings.totalEnrollments || myCourses.reduce(
     (acc, c) => acc + (c.enrolledStudents?.length || 0),
     0
   );
-  const totalEarnings = myCourses.reduce(
-    (acc, c) => acc + (c.price || 0) * (c.enrolledStudents?.length || 0),
-    0
-  );
+  const totalEarnings = earnings.totalEarning || 0;
 
   // Get all enrolled students across all courses
   const allEnrolledStudents = myCourses.flatMap((course) =>
@@ -143,6 +178,8 @@ const FacultyDash = () => {
           myCourses={myCourses}
           totalEnrollments={totalEnrollments}
           totalEarnings={totalEarnings}
+          earningsBreakdown={earnings.breakdown}
+          earningsLoading={earningsLoading}
           user={user}
           coursesError={coursesError}
         />
@@ -463,7 +500,7 @@ const FacultyDash = () => {
 };
 
 // ==================== DASHBOARD SECTION ====================
-const DashboardSection = ({ myCourses, totalEnrollments, totalEarnings, user, coursesError }) => {
+const DashboardSection = ({ myCourses, totalEnrollments, totalEarnings, earningsBreakdown, earningsLoading, user, coursesError }) => {
   // Calculate verification status counts
   const approvedCount = myCourses.filter(c => c.courseStatus === "approved").length;
   const pendingCount = myCourses.filter(c => c.courseStatus === "pending" || !c.courseStatus).length;
@@ -483,10 +520,11 @@ const DashboardSection = ({ myCourses, totalEnrollments, totalEarnings, user, co
       color: "bg-green-500",
     },
     {
-      label: "Total Earnings",
-      value: `₹${totalEarnings.toLocaleString()}`,
+      label: "Total Earnings (80%)",
+      value: earningsLoading ? "Loading..." : `₹${totalEarnings.toLocaleString()}`,
       icon: DollarSign,
       color: "bg-purple-500",
+      subtitle: "Your share from enrollments"
     },
   ];
 
@@ -528,11 +566,56 @@ const DashboardSection = ({ myCourses, totalEnrollments, totalEarnings, user, co
               <div>
                 <p className="text-gray-500 text-sm">{stat.label}</p>
                 <h3 className="text-2xl font-bold text-gray-800">{stat.value}</h3>
+                {stat.subtitle && <p className="text-xs text-gray-400">{stat.subtitle}</p>}
               </div>
             </div>
           </motion.div>
         ))}
       </div>
+
+      {/* Earnings Breakdown by Course */}
+      {earningsBreakdown && earningsBreakdown.length > 0 && (
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 shadow-sm border border-green-100 mb-8">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <DollarSign size={20} className="text-green-600" />
+            Earnings Breakdown (80% Revenue Share)
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left text-xs text-gray-500 border-b border-green-200">
+                  <th className="pb-3 font-medium">Course</th>
+                  <th className="pb-3 font-medium text-center">Enrollments</th>
+                  <th className="pb-3 font-medium text-right">Your Earnings</th>
+                </tr>
+              </thead>
+              <tbody>
+                {earningsBreakdown.map((item, idx) => (
+                  <tr key={idx} className="border-b border-green-100 last:border-0">
+                    <td className="py-3 text-sm font-medium text-gray-800">{item.course}</td>
+                    <td className="py-3 text-sm text-center text-gray-600">{item.enrollments || 1}</td>
+                    <td className="py-3 text-sm text-right font-semibold text-green-600">
+                      ₹{(item.amount || item.lecturerEarning || 0).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-green-100 rounded-lg">
+                  <td className="py-3 px-2 text-sm font-bold text-gray-800 rounded-l-lg">Total</td>
+                  <td className="py-3 text-sm text-center font-bold text-gray-800">{totalEnrollments}</td>
+                  <td className="py-3 px-2 text-sm text-right font-bold text-green-700 rounded-r-lg">
+                    ₹{totalEarnings.toLocaleString()}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <p className="text-xs text-gray-500 mt-4 bg-white p-2 rounded">
+            💡 <strong>Note:</strong> You receive 80% of each course enrollment. The remaining 20% goes to the platform as commission.
+          </p>
+        </div>
+      )}
 
       {/* Verification Status Summary */}
       {myCourses.length > 0 && (

@@ -7,6 +7,10 @@ const CourseCard = ({ course, avgStars, index }) => {
   const [exchangeRate, setExchangeRate] = useState(83);
   const navigate = useNavigate();
 
+  // Use averageRating from API if available, otherwise use passed avgStars prop
+  const rating = course?.averageRating || avgStars || 0;
+  const reviewCount = course?.totalReviews || course?.reviews?.length || 0;
+
   // Resolve image URL (courseImage may be object or array)
   const imageUrl =
     (course?.courseImage && (course.courseImage.url || course.courseImage.secure_url || (Array.isArray(course.courseImage) && course.courseImage[0]?.url))) ||
@@ -71,14 +75,14 @@ const CourseCard = ({ course, avgStars, index }) => {
               <span
                 key={i}
                 className={`text-sm ${
-                  i < avgStars ? "text-yellow-500" : "text-gray-300"
+                  i < Math.round(rating) ? "text-yellow-500" : "text-gray-300"
                 }`}
               >
                 ★
               </span>
             ))}
             <span className="text-slate-500 text-xs ml-2">
-              ({course.reviews?.length || 0})
+              ({reviewCount})
             </span>
           </div>
         </div>

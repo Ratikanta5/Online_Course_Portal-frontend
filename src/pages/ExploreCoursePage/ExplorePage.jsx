@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { Search, RefreshCw, AlertCircle, WifiOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCourses } from "../../context/CourseContext";
 
@@ -25,11 +25,88 @@ const SkeletonCard = () => {
   );
 };
 
+/* -----------------------------------------------------
+   ERROR STATE COMPONENT
+------------------------------------------------------ */
+const ErrorState = ({ error, onRetry, isRetrying }) => {
+  const isOffline = !navigator.onLine;
+  
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex flex-col items-center justify-center py-16 px-4"
+    >
+      <div className="bg-red-50 rounded-full p-4 mb-4">
+        {isOffline ? (
+          <WifiOff className="w-12 h-12 text-red-500" />
+        ) : (
+          <AlertCircle className="w-12 h-12 text-red-500" />
+        )}
+      </div>
+      <h3 className="text-xl font-semibold text-gray-800 mb-2">
+        {isOffline ? "You're Offline" : "Unable to Load Courses"}
+      </h3>
+      <p className="text-gray-600 text-center max-w-md mb-6">
+        {error || "Something went wrong while fetching courses. Please try again."}
+      </p>
+      <motion.button
+        onClick={onRetry}
+        disabled={isRetrying}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        className={`
+          inline-flex items-center gap-2 px-6 py-3 rounded-lg font-semibold
+          ${isRetrying 
+            ? 'bg-gray-400 cursor-not-allowed' 
+            : 'bg-blue-600 hover:bg-blue-700'
+          } text-white transition-colors
+        `}
+      >
+        <RefreshCw className={`w-5 h-5 ${isRetrying ? 'animate-spin' : ''}`} />
+        {isRetrying ? 'Retrying...' : 'Try Again'}
+      </motion.button>
+    </motion.div>
+  );
+};
+
+/* -----------------------------------------------------
+   EMPTY STATE COMPONENT
+------------------------------------------------------ */
+const EmptyState = ({ hasFilters, onClearFilters }) => (
+  <motion.div 
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="flex flex-col items-center justify-center py-16 px-4"
+  >
+    <div className="bg-blue-50 rounded-full p-4 mb-4">
+      <Search className="w-12 h-12 text-blue-500" />
+    </div>
+    <h3 className="text-xl font-semibold text-gray-800 mb-2">
+      {hasFilters ? "No Matching Courses" : "No Courses Available"}
+    </h3>
+    <p className="text-gray-600 text-center max-w-md mb-6">
+      {hasFilters 
+        ? "Try adjusting your filters or search terms to find what you're looking for."
+        : "Check back soon! New courses are being added regularly."
+      }
+    </p>
+    {hasFilters && (
+      <motion.button
+        onClick={onClearFilters}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+      >
+        Clear All Filters
+      </motion.button>
+    )}
+  </motion.div>
+);
+
 const ExplorePage = () => {
   const navigate = useNavigate();
-  const { courses, loading, error } = useCourses();
-
-  console.log("ExplorePage - courses:", courses, "loading:", loading, "error:", error);
+  const { courses, loading, error, isRetrying, refetchCourses } = useCourses();
 
   const description = async (course) => {
     navigate("/course-about", { state: course });
@@ -47,6 +124,20 @@ const ExplorePage = () => {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
+
+  // Check if any filters are active
+  const hasActiveFilters = searchQuery.trim() !== "" || 
+    selectedCategory !== "All" || 
+    selectedLecturer !== "All";
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery("");
+    setSelectedCategory("All");
+    setSelectedLecturer("All");
+    setSortType("latest");
+    setCurrentPage(1);
+  };
 
   // Filter only active courses
   const activeCourses = (courses || []).filter((c) => c.courseStatus !== false);
@@ -73,9 +164,14 @@ const ExplorePage = () => {
   const categories = ["All", ...new Set(activeCourses.map((c) => c.category).filter(Boolean))];
   const lecturers = ["All", ...new Set(activeCourses.map((c) => getLecturerName(c)))];
 
-  const averagereviews = (arr) => {
-    if (!arr || !Array.isArray(arr) || arr.length === 0) return 0;
-    return Math.round(arr.reduce((a, b) => a + b, 0) / arr.length);
+  // Get average rating - use API value or fallback
+  const getAverageRating = (course) => {
+    return course?.averageRating || 0;
+  };
+
+  // Get total reviews count
+  const getTotalReviews = (course) => {
+    return course?.totalReviews || 0;
   };
 
   /* -----------------------------------------------------
@@ -106,7 +202,7 @@ const ExplorePage = () => {
 
       case "reviews":
         list.sort(
-          (a, b) => averagereviews(b.reviews || []) - averagereviews(a.reviews || [])
+          (a, b) => getAverageRating(b) - getAverageRating(a)
         );
         break;
 
@@ -193,17 +289,51 @@ const ExplorePage = () => {
         {/* Currency */}
         <button
           onClick={() => setCurrency(currency === "INR" ? "USD" : "INR")}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           {currency === "INR" ? "Show USD" : "Show INR"}
         </button>
+
+        {/* Clear Filters Button - only show when filters are active */}
+        {hasActiveFilters && (
+          <button
+            onClick={clearFilters}
+            className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+          >
+            Clear Filters
+          </button>
+        )}
       </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-        {loading
-          ? [...Array(8)].map((_, i) => <SkeletonCard key={i} />)
-          : paginatedData.map((course, index) => (
+      {/* Error State */}
+      {error && !loading && (
+        <ErrorState 
+          error={error} 
+          onRetry={refetchCourses} 
+          isRetrying={isRetrying} 
+        />
+      )}
+
+      {/* Empty State - when no courses and no error */}
+      {!loading && !error && filteredCourses.length === 0 && (
+        <EmptyState 
+          hasFilters={hasActiveFilters} 
+          onClearFilters={clearFilters} 
+        />
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {[...Array(8)].map((_, i) => <SkeletonCard key={i} />)}
+        </div>
+      )}
+
+      {/* Course Grid - only show when we have courses */}
+      {!loading && !error && filteredCourses.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {paginatedData.map((course, index) => (
               <motion.div
                 key={course._id || course.id}
                 initial={{ opacity: 0, y: 15 }}
@@ -232,7 +362,7 @@ const ExplorePage = () => {
                         <span
                           key={i}
                           className={`text-sm ${
-                            i < averagereviews(course.reviews || [])
+                            i < Math.round(getAverageRating(course))
                               ? "text-yellow-500"
                               : "text-gray-300"
                           }`}
@@ -241,7 +371,7 @@ const ExplorePage = () => {
                         </span>
                       ))}
                       <span className="text-xs text-gray-600 ml-2">
-                        ({course.reviews?.length || 0})
+                        ({getTotalReviews(course)})
                       </span>
                     </div>
                   </div>
@@ -282,38 +412,49 @@ const ExplorePage = () => {
                 </div>
               </motion.div>
             ))}
-      </div>
+          </div>
 
-      {/* Pagination */}
-      <div className="flex justify-center mt-10 gap-3">
-        <button
-          className="px-4 py-2 border rounded-lg"
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage((p) => p - 1)}
-        >
-          Prev
-        </button>
+          {/* Pagination - only show when there are multiple pages */}
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-10 gap-3 flex-wrap">
+              <button
+                className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => p - 1)}
+              >
+                Prev
+              </button>
 
-        {[...Array(totalPages)].map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setCurrentPage(i + 1)}
-            className={`px-3 py-2 rounded-lg border ${
-              currentPage === i + 1 ? "bg-blue-600 text-white" : ""
-            }`}
-          >
-            {i + 1}
-          </button>
-        ))}
+              {[...Array(totalPages)].map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={`px-3 py-2 rounded-lg border transition-colors ${
+                    currentPage === i + 1 
+                      ? "bg-blue-600 text-white" 
+                      : "hover:bg-gray-50"
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
 
-        <button
-          className="px-4 py-2 border rounded-lg"
-          disabled={currentPage === totalPages}
-          onClick={() => setCurrentPage((p) => p + 1)}
-        >
-          Next
-        </button>
-      </div>
+              <button
+                className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => p + 1)}
+              >
+                Next
+              </button>
+            </div>
+          )}
+
+          {/* Results count */}
+          <p className="text-center text-gray-500 text-sm mt-4">
+            Showing {paginatedData.length} of {filteredCourses.length} courses
+          </p>
+        </>
+      )}
     </div>
   );
 };

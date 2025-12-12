@@ -5,10 +5,8 @@ import ChooseUs from "../components/ForHome/ChooseUs";
 import { useCourses } from "../context/CourseContext";
 
 const Home = () => {
-  // We'll get real courses from CourseContext; keep a small fallback just in case
-  const { courses, loading: coursesLoading } = useCourses();
-
-  const dummyCourses = [];
+  // Get courses from CourseContext
+  const { courses, loading: coursesLoading, error, refetchCourses } = useCourses();
 
   const getAverageStars = (reviews) => {
     if (!reviews || !Array.isArray(reviews) || reviews.length === 0) {
@@ -17,8 +15,8 @@ const Home = () => {
     return Math.round(reviews.reduce((a, b) => a + b, 0) / reviews.length);
   };
 
-  // use courses from context; filter only active courses
-  const availableCourses = (coursesLoading ? [] : courses || []).filter(
+  // Filter only active courses
+  const availableCourses = (courses || []).filter(
     (c) => c.courseStatus !== false
   );
 
@@ -31,8 +29,11 @@ const Home = () => {
       <ChooseUs />
 
       <FeatureCourse
-        dummyCourses={availableCourses.length ? availableCourses : dummyCourses}
+        dummyCourses={availableCourses}
         getAverageStars={getAverageStars}
+        loading={coursesLoading}
+        error={error}
+        onRetry={refetchCourses}
       />
     </div>
   );
