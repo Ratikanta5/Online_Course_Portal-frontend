@@ -9,7 +9,7 @@ import { CheckCircle2, X, Loader, CreditCard, Smartphone } from "lucide-react";
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 // Inner component that uses Stripe hooks
-function PaymentForm({ courseId, courseName, coursePrice, courseImage, onSuccess, onClose, enrollmentId }) {
+function PaymentForm({ courseId, courseName, coursePrice, courseImage, onSuccess, onClose, enrollmentId, lecturerId }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -69,6 +69,11 @@ function PaymentForm({ courseId, courseName, coursePrice, courseImage, onSuccess
 
         if (confirmResponse.data.success) {
           setSuccess(true);
+          
+          // Notifications are now sent server-side in the backend
+          // This ensures reliability even if frontend fails
+          console.log('Enrollment confirmed. Notifications sent by server.');
+          
           // Call parent callback after success
           setTimeout(() => {
             if (onSuccess) onSuccess(confirmResponse.data.enrollment);
@@ -206,7 +211,7 @@ function PaymentForm({ courseId, courseName, coursePrice, courseImage, onSuccess
 }
 
 // Main component that wraps with Elements provider
-export default function EnrollmentPayment({ courseId, courseName, coursePrice, courseImage, isOpen, onClose, onSuccess }) {
+export default function EnrollmentPayment({ courseId, courseName, coursePrice, courseImage, isOpen, onClose, onSuccess, lecturerId }) {
   const [clientSecret, setClientSecret] = useState(null);
   const [enrollmentId, setEnrollmentId] = useState(null);
 
@@ -282,6 +287,7 @@ export default function EnrollmentPayment({ courseId, courseName, coursePrice, c
             onClose={onClose}
             onSuccess={onSuccess}
             enrollmentId={enrollmentId}
+            lecturerId={lecturerId}
           />
         </Elements>
       )}

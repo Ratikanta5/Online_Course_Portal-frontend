@@ -3,7 +3,8 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Star, Send, X, User, ThumbsUp, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 import axios from "axios";
-import { getToken } from "../utils/auth";
+import { getToken, getUser } from "../utils/auth";
+import { NotificationTemplates, sendNotificationToUser } from "../utils/notificationApi";
 
 // Star Rating Input Component
 const StarRating = ({ rating, setRating, disabled = false, size = "lg" }) => {
@@ -118,7 +119,7 @@ const ReviewCard = ({ review, currentUserId, onHelpful }) => {
 };
 
 // Main Course Review Component
-const CourseReview = ({ courseId, courseName, isEnrolled = false }) => {
+const CourseReview = ({ courseId, courseName, isEnrolled = false, lecturerId }) => {
   const [reviews, setReviews] = useState([]);
   const [userReview, setUserReview] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -254,6 +255,21 @@ const CourseReview = ({ courseId, courseName, isEnrolled = false }) => {
         setUserReview(response.data.review);
         setShowReviewForm(false);
         setIsEditing(false);
+        
+        // Send notification to lecturer about new review (only for new reviews, not edits)
+        if (!isEditing && lecturerId) {
+          try {
+            const currentUser = getUser();
+            const studentName = currentUser?.name || 'A student';
+            const notification = NotificationTemplates.newReview(studentName, courseName, rating);
+            await sendNotificationToUser(lecturerId, {
+              ...notification,
+              data: { courseId, reviewId: response.data.review._id, rating }
+            });
+          } catch (notifErr) {
+            console.warn('Failed to send review notification:', notifErr);
+          }
+        }
         
         // Refresh reviews
         fetchReviews();

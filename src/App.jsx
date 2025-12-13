@@ -15,6 +15,8 @@ import Login from "./pages/AuthPage/Login";
 import { UserProvider } from "./context/UserContext";
 import ProfilePage from "./pages/profile/ProfilePage";
 import CourseProvider from "./context/CourseContext";
+import { NotificationProvider } from "./context/NotificationContext";
+import NotificationsPage from "./pages/Notifications/NotificationsPage";
 
 
 const App = () => {
@@ -35,6 +37,7 @@ const App = () => {
         { path: "/learn/:courseId", element: <CourseLearning /> },
         { path: "/verify/:token", element: <VerifyEmail/> },
         { path: "/profile", element: <ProfilePage /> },
+        { path: "/notifications", element: <NotificationsPage /> },
         {path:"/lecturer/dashboard",element:<FacultyDash/>},
 
         {
@@ -69,10 +72,12 @@ const App = () => {
 
   return(
   <UserProvider>
+    <NotificationProvider>
       <CourseProvider>
         <RouterProvider router={routes} />
       </CourseProvider>
-    </UserProvider>
+    </NotificationProvider>
+  </UserProvider>
   );
 };
 

@@ -30,12 +30,16 @@ import {
   CheckCircle2,
   Clock,
   Loader2,
+  Bell,
 } from "lucide-react";
 import { useUser } from "../../context/UserContext";
 import { useCourses } from "../../context/CourseContext";
+import { useNotifications } from "../../context/NotificationContext";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { getToken, clearAuth } from "../../utils/auth";
+import { NotificationTemplates, sendNotificationToRole } from "../../utils/notificationApi";
+import ApprovalPendingModal from "../../components/ApprovalPendingModal";
 
 const FacultyDash = () => {
   const { user, loading: userLoading } = useUser();
@@ -48,6 +52,13 @@ const FacultyDash = () => {
   const [lecturerCourses, setLecturerCourses] = useState([]);
   const [lecturerCoursesLoading, setLecturerCoursesLoading] = useState(false);
   const [lecturerCoursesError, setLecturerCoursesError] = useState(null);
+  
+  // Approval pending modal state
+  const [approvalModal, setApprovalModal] = useState({
+    isOpen: false,
+    type: 'course',
+    contentName: ''
+  });
   
   // Earnings state
   const [earnings, setEarnings] = useState({
@@ -185,10 +196,15 @@ const FacultyDash = () => {
         />
       )}
       {activeMenu === "add-course" && (
-        <AddCourseSection key="add-course" refetchCourses={() => {
-          refetchCourses();
-          fetchLecturerCourses();
-        }} />
+        <AddCourseSection 
+          key="add-course" 
+          user={user} 
+          refetchCourses={() => {
+            refetchCourses();
+            fetchLecturerCourses();
+          }}
+          setApprovalModal={setApprovalModal}
+        />
       )}
       {activeMenu === "my-courses" && (
         <MyCoursesSection key="my-courses" myCourses={myCourses} />
@@ -495,6 +511,14 @@ const FacultyDash = () => {
           {renderActiveSection()}
         </div>
       </main>
+
+      {/* Approval Pending Modal */}
+      <ApprovalPendingModal
+        isOpen={approvalModal.isOpen}
+        onClose={() => setApprovalModal({ ...approvalModal, isOpen: false })}
+        type={approvalModal.type}
+        contentName={approvalModal.contentName}
+      />
     </div>
   );
 };
@@ -732,7 +756,7 @@ const DashboardSection = ({ myCourses, totalEnrollments, totalEarnings, earnings
 };
 
 // ==================== ADD COURSE SECTION ====================
-const AddCourseSection = ({ refetchCourses }) => {
+const AddCourseSection = ({ refetchCourses, user, setApprovalModal }) => {
   const [courseData, setCourseData] = useState({
     title: "",
     description: "",
@@ -892,11 +916,35 @@ const AddCourseSection = ({ refetchCourses }) => {
         }
       }
 
+      // Save course name before reset
+      const createdCourseName = courseData.title;
+      const topicsCount = topics.length;
+      
       resetForm();
       refetchCourses();
+      
+      // Send notification to admin about new course submission
+      try {
+        const notification = NotificationTemplates.courseSubmitted(createdCourseName, user?.name || 'Lecturer');
+        await sendNotificationToRole('admin', {
+          ...notification,
+          data: { courseId: courseId, lecturerId: user?._id },
+        });
+      } catch (notifErr) {
+        console.warn('Failed to send notification:', notifErr);
+        // Don't fail the course creation if notification fails
+      }
+
+      // Show approval pending modal
+      setApprovalModal({
+        isOpen: true,
+        type: 'course',
+        contentName: createdCourseName
+      });
+
       setFormStatus({ 
         type: "success", 
-        message: `Course "${courseData.title}" created successfully with ${topics.length} topic(s)!` 
+        message: `Course "${createdCourseName}" created successfully with ${topicsCount} topic(s)! Awaiting admin approval.` 
       });
     } catch (err) {
       console.error("Failed to create course:", err);

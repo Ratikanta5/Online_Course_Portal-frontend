@@ -414,40 +414,38 @@ const ExplorePage = () => {
             ))}
           </div>
 
-          {/* Pagination - only show when there are multiple pages */}
-          {totalPages > 1 && (
-            <div className="flex justify-center mt-10 gap-3 flex-wrap">
-              <button
-                className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((p) => p - 1)}
-              >
-                Prev
-              </button>
+          {/* Pagination */}
+          <div className="flex justify-center mt-10 gap-3 flex-wrap">
+            <button
+              className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => p - 1)}
+            >
+              Prev
+            </button>
 
-              {[...Array(totalPages)].map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`px-3 py-2 rounded-lg border transition-colors ${
-                    currentPage === i + 1 
-                      ? "bg-blue-600 text-white" 
-                      : "hover:bg-gray-50"
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-
+            {[...Array(totalPages || 1)].map((_, i) => (
               <button
-                className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage((p) => p + 1)}
+                key={i}
+                onClick={() => setCurrentPage(i + 1)}
+                className={`px-3 py-2 rounded-lg border transition-colors ${
+                  currentPage === i + 1 
+                    ? "bg-blue-600 text-white" 
+                    : "hover:bg-gray-50"
+                }`}
               >
-                Next
+                {i + 1}
               </button>
-            </div>
-          )}
+            ))}
+
+            <button
+              className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+              disabled={currentPage === totalPages || totalPages <= 1}
+              onClick={() => setCurrentPage((p) => p + 1)}
+            >
+              Next
+            </button>
+          </div>
 
           {/* Results count */}
           <p className="text-center text-gray-500 text-sm mt-4">

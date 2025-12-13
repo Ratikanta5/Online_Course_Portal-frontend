@@ -5,7 +5,6 @@ import {
   User,
   LogOut,
   BookOpen,
-  Bell,
   LayoutDashboard,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -13,33 +12,23 @@ import { useNavigate } from "react-router-dom";
 // ⬅️ USE YOUR GLOBAL USER CONTEXT
 import { useUser } from "../context/UserContext";
 import { clearAuth } from "../utils/auth";
+import NotificationPanel from "./NotificationPanel";
 
 const Nav = ({ openLogin }) => {
   const { user, loading, setUser } = useUser();   // ← here
   const navigate = useNavigate();
   const [openProfile, setOpenProfile] = useState(false);
-  const [openNotif, setOpenNotif] = useState(false);
 
   const dropdownRef = useRef(null);
-  const notifRef = useRef(null);
-
-  const [notifications, setNotifications] = useState([
-    // Example Notifications
-    { message: "New React course added!", time: "2 min ago", role: "user" },
-    { message: "Admin approved your course!", time: "10 min ago", role: "lecturer" },
-  ]);
 
   // Close dropdowns if clicking outside
   useEffect(() => {
     function handleClickOutside(e) {
       if (
         dropdownRef.current &&
-        !dropdownRef.current.contains(e.target) &&
-        notifRef.current &&
-        !notifRef.current.contains(e.target)
+        !dropdownRef.current.contains(e.target)
       ) {
         setOpenProfile(false);
-        setOpenNotif(false);
       }
     }
 
@@ -79,46 +68,8 @@ const Nav = ({ openLogin }) => {
         ) : (
           <div className="flex items-center gap-4">
 
-            {/* 🔔 Notification Bell */}
-            <div className="relative" ref={notifRef}>
-              <button
-                onClick={() => setOpenNotif(!openNotif)}
-                className="relative p-2 hover:bg-gray-200 rounded-full transition"
-              >
-                <Bell size={22} />
-
-                {notifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                    {notifications.length}
-                  </span>
-                )}
-              </button>
-
-              {openNotif && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="absolute right-0 mt-3 w-72 max-h-96 overflow-y-auto bg-white 
-                  shadow-lg rounded-xl border p-3 z-50"
-                >
-                  <p className="font-semibold mb-2">Notifications</p>
-
-                  {notifications.length === 0 && (
-                    <p className="text-sm text-gray-500">No notifications</p>
-                  )}
-
-                  {notifications.map((n, i) => (
-                    <div
-                      key={i}
-                      className="p-2 mb-2 bg-gray-50 hover:bg-gray-100 rounded-lg border"
-                    >
-                      <p className="text-sm text-gray-800">{n.message}</p>
-                      <p className="text-xs text-gray-400">{n.time}</p>
-                    </div>
-                  ))}
-                </motion.div>
-              )}
-            </div>
+            {/* 🔔 Notification Bell - Industry Grade Component */}
+            <NotificationPanel />
 
             {/* Profile dropdown */}
             <div className="relative" ref={dropdownRef}>

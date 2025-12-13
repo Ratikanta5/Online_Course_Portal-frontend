@@ -19,6 +19,7 @@ import {
   DollarSign,
   User,
   FileCheck,
+  Megaphone,
 } from 'lucide-react';
 import { useUser } from '../../context/UserContext';
 import { useNavigate } from 'react-router-dom';
@@ -31,6 +32,7 @@ import AdminEnrollments from './AdminComponents/AdminEnrollments';
 import AdminReviews from './AdminComponents/AdminReviews';
 import AdminAnalytics from './AdminComponents/AdminAnalytics';
 import AdminContentApproval from './AdminComponents/AdminContentApproval';
+import AdminAnnouncements from './AdminComponents/AdminAnnouncements';
 
 const AdminDash = () => {
   const { user, loading: userLoading } = useUser();
@@ -110,6 +112,7 @@ const AdminDash = () => {
     { id: 'users', label: 'Users', icon: Users },
     { id: 'courses', label: 'Courses', icon: BookOpen },
     { id: 'content', label: 'Content Approval', icon: FileCheck },
+    { id: 'announcements', label: 'Announcements', icon: Megaphone },
     { id: 'enrollments', label: 'Enrollments', icon: ShoppingCart },
     { id: 'reviews', label: 'Reviews', icon: Star },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
@@ -131,6 +134,7 @@ const AdminDash = () => {
       {activeMenu === 'users' && <AdminUsers key="users" />}
       {activeMenu === 'courses' && <AdminCourses key="courses" />}
       {activeMenu === 'content' && <AdminContentApproval key="content" />}
+      {activeMenu === 'announcements' && <AdminAnnouncements key="announcements" />}
       {activeMenu === 'enrollments' && <AdminEnrollments key="enrollments" />}
       {activeMenu === 'reviews' && <AdminReviews key="reviews" />}
       {activeMenu === 'analytics' && <AdminAnalytics key="analytics" />}

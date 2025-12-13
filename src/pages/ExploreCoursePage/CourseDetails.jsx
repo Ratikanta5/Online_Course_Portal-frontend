@@ -377,6 +377,7 @@ const CourseDetails = () => {
           courseId={course?._id}
           courseName={course?.title}
           isEnrolled={enrolled}
+          lecturerId={course?.creator?._id || course?.creator || course?.createdBy?._id || course?.createdBy}
         />
       </motion.div>
 
@@ -387,6 +388,7 @@ const CourseDetails = () => {
         courseName={course?.title}
         coursePrice={course?.price}
         courseImage={imageUrl}
+        lecturerId={course?.creator?._id || course?.creator || course?.createdBy?._id || course?.createdBy}
         onClose={() => setPaymentOpen(false)}
         onSuccess={(enrollment) => {
           setEnrolled(true);

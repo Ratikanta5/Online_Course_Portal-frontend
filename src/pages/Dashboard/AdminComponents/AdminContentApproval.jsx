@@ -16,6 +16,11 @@ import {
   Play,
 } from 'lucide-react';
 import { getPendingTopics, getPendingLectures, approveTopic, rejectTopic, approveLecture, rejectLecture } from '../../../utils/adminApi';
+import { 
+  NotificationTemplates, 
+  sendNotificationToUser, 
+  sendNotificationToCourseStudents 
+} from '../../../utils/notificationApi';
 
 const AdminContentApproval = () => {
   const [activeTab, setActiveTab] = useState('topics');
@@ -56,11 +61,37 @@ const AdminContentApproval = () => {
 
   // Handle topic approval
   const handleApproveTopic = async (topicId) => {
+    const topic = topics.find(t => t._id === topicId);
     try {
       setActionLoading(topicId);
       const result = await approveTopic(topicId);
       if (result.success) {
         setTopics(topics.filter(t => t._id !== topicId));
+        
+        // Send notification to lecturer
+        const lecturerId = topic?.courseId?.createdBy?._id || topic?.courseId?.createdBy;
+        if (lecturerId) {
+          try {
+            const notification = NotificationTemplates.topicApproved(
+              topic.title, 
+              topic.courseId?.title || 'your course'
+            );
+            await sendNotificationToUser(lecturerId, {
+              ...notification,
+              data: { topicId: topic._id, courseId: topic.courseId?._id }
+            });
+            
+            // Notify enrolled students about new content
+            if (topic.courseId?._id) {
+              await sendNotificationToCourseStudents(topic.courseId._id, {
+                ...NotificationTemplates.newContentAdded(topic.courseId.title, 'topic'),
+                data: { topicId: topic._id, courseId: topic.courseId._id }
+              });
+            }
+          } catch (notifErr) {
+            console.warn('Failed to send notification:', notifErr);
+          }
+        }
       }
     } catch (err) {
       alert('Error approving topic: ' + err.message);
@@ -71,12 +102,31 @@ const AdminContentApproval = () => {
 
   // Handle topic rejection
   const handleRejectTopic = async (topicId) => {
+    const topic = topics.find(t => t._id === topicId);
     if (!window.confirm('Are you sure you want to reject this topic?')) return;
     try {
       setActionLoading(topicId);
       const result = await rejectTopic(topicId);
       if (result.success) {
         setTopics(topics.filter(t => t._id !== topicId));
+        
+        // Send notification to lecturer
+        const lecturerId = topic?.courseId?.createdBy?._id || topic?.courseId?.createdBy;
+        if (lecturerId) {
+          try {
+            const notification = NotificationTemplates.topicRejected(
+              topic.title, 
+              topic.courseId?.title || 'your course',
+              'Please review and resubmit'
+            );
+            await sendNotificationToUser(lecturerId, {
+              ...notification,
+              data: { topicId: topic._id, courseId: topic.courseId?._id }
+            });
+          } catch (notifErr) {
+            console.warn('Failed to send notification:', notifErr);
+          }
+        }
       }
     } catch (err) {
       alert('Error rejecting topic: ' + err.message);
@@ -87,11 +137,38 @@ const AdminContentApproval = () => {
 
   // Handle lecture approval
   const handleApproveLecture = async (topicId, lectureId) => {
+    const lecture = lectures.find(l => l._id === lectureId);
     try {
       setActionLoading(lectureId);
       const result = await approveLecture(topicId, lectureId);
       if (result.success) {
         setLectures(lectures.filter(l => l._id !== lectureId));
+        
+        // Send notification to lecturer
+        const lecturerId = lecture?.lecturerId || lecture?.courseId?.createdBy;
+        if (lecturerId) {
+          try {
+            const notification = NotificationTemplates.lectureApproved(
+              lecture.title, 
+              lecture.topicTitle || 'topic'
+            );
+            await sendNotificationToUser(lecturerId, {
+              ...notification,
+              data: { lectureId: lecture._id, topicId: topicId }
+            });
+            
+            // Notify enrolled students about new lecture
+            if (lecture.courseId) {
+              const courseId = typeof lecture.courseId === 'object' ? lecture.courseId._id : lecture.courseId;
+              await sendNotificationToCourseStudents(courseId, {
+                ...NotificationTemplates.newContentAdded(lecture.courseTitle || 'course', 'lecture'),
+                data: { lectureId: lecture._id, topicId: topicId, courseId: courseId }
+              });
+            }
+          } catch (notifErr) {
+            console.warn('Failed to send notification:', notifErr);
+          }
+        }
       }
     } catch (err) {
       alert('Error approving lecture: ' + err.message);
@@ -102,12 +179,31 @@ const AdminContentApproval = () => {
 
   // Handle lecture rejection
   const handleRejectLecture = async (topicId, lectureId) => {
+    const lecture = lectures.find(l => l._id === lectureId);
     if (!window.confirm('Are you sure you want to reject this lecture?')) return;
     try {
       setActionLoading(lectureId);
       const result = await rejectLecture(topicId, lectureId);
       if (result.success) {
         setLectures(lectures.filter(l => l._id !== lectureId));
+        
+        // Send notification to lecturer
+        const lecturerId = lecture?.lecturerId || lecture?.courseId?.createdBy;
+        if (lecturerId) {
+          try {
+            const notification = NotificationTemplates.lectureRejected(
+              lecture.title, 
+              lecture.topicTitle || 'topic',
+              'Please review and resubmit'
+            );
+            await sendNotificationToUser(lecturerId, {
+              ...notification,
+              data: { lectureId: lecture._id, topicId: topicId }
+            });
+          } catch (notifErr) {
+            console.warn('Failed to send notification:', notifErr);
+          }
+        }
       }
     } catch (err) {
       alert('Error rejecting lecture: ' + err.message);

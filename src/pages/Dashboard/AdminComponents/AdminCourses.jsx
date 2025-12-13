@@ -15,6 +15,11 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { getAllCoursesAdmin, approveCourse, rejectCourse, deleteCourse } from '../../../utils/adminApi';
+import { 
+  NotificationTemplates, 
+  sendNotificationToUser, 
+  sendNotificationToCourseStudents 
+} from '../../../utils/notificationApi';
 
 const AdminCourses = () => {
   const [courses, setCourses] = useState([]);
@@ -74,6 +79,31 @@ const AdminCourses = () => {
       
       if (result.success) {
         setCourses(courses.filter(c => c._id !== selectedCourse._id));
+        
+        // Send notification to lecturer about approval
+        const lecturerId = selectedCourse.creator?._id || selectedCourse.createdBy?._id || selectedCourse.createdBy;
+        if (lecturerId) {
+          try {
+            const notification = NotificationTemplates.courseApproved(selectedCourse.title);
+            await sendNotificationToUser(lecturerId, {
+              ...notification,
+              data: { courseId: selectedCourse._id }
+            });
+            
+            // Notify enrolled students (if any) about the course going live
+            if (selectedCourse.enrolledStudents?.length > 0) {
+              await sendNotificationToCourseStudents(selectedCourse._id, {
+                type: 'course_approved',
+                title: '🎉 Course is Now Live!',
+                message: `The course "${selectedCourse.title}" you enrolled in is now officially live!`,
+                data: { courseId: selectedCourse._id }
+              });
+            }
+          } catch (notifErr) {
+            console.warn('Failed to send notification:', notifErr);
+          }
+        }
+        
         setShowApprovalModal(false);
         setFeedback('');
         setSelectedCourse(null);
@@ -98,6 +128,21 @@ const AdminCourses = () => {
       
       if (result.success) {
         setCourses(courses.filter(c => c._id !== selectedCourse._id));
+        
+        // Send notification to lecturer about rejection
+        const lecturerId = selectedCourse.creator?._id || selectedCourse.createdBy?._id || selectedCourse.createdBy;
+        if (lecturerId) {
+          try {
+            const notification = NotificationTemplates.courseRejected(selectedCourse.title, rejectReason);
+            await sendNotificationToUser(lecturerId, {
+              ...notification,
+              data: { courseId: selectedCourse._id }
+            });
+          } catch (notifErr) {
+            console.warn('Failed to send notification:', notifErr);
+          }
+        }
+        
         setShowRejectModal(false);
         setRejectReason('');
         setSelectedCourse(null);
